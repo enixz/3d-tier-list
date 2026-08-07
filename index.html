@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>重装排行榜 | Mecha Tier List</title>
+    <meta name="description" content="金属机械风格的3D重装排行榜 — 拖拽卡牌到各层级进行排名">
+    <!-- Google Fonts for Futuristic Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link id="theme-css" rel="stylesheet" href="./style.css">
+    <!-- Skin boot: swap stylesheet before first paint if the cyber skin was picked -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('hangdaola_skin') === 'cyber') {
+            document.getElementById('theme-css').href = './cyber.css';
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="pre-boot">
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- 2D UI Layer -->
+    <div id="ui-layer">
+
+      <!-- Soft vignette (decorative, non-interactive, hidden with #ui-layer during capture) -->
+      <div class="hud-vignette"></div>
+
+      <!-- CRT scanlines + roaming scan band (decorative ambience) -->
+      <div class="hud-scanlines" aria-hidden="true"></div>
+      <div class="hud-scanband" aria-hidden="true"></div>
+
+      <!-- Boot sweep line (plays once on load) -->
+      <div class="boot-line" aria-hidden="true"></div>
+
+      <!-- Cursor reticle: crosshair + live world-coordinate readout (canvas only) -->
+      <div id="hud-reticle" aria-hidden="true">
+        <span class="ret-ring"></span>
+        <span class="ret-cross-h"></span>
+        <span class="ret-cross-v"></span>
+        <span class="ret-coords" id="ret-coords">X +00.0 · Y +00.0</span>
+      </div>
+
+      <!-- Floating Glass Command Header -->
+      <nav class="top-nav glass-panel">
+        <!-- Bottom edge light-sweep -->
+        <span class="nav-scan" aria-hidden="true"></span>
+
+        <!-- Title Left -->
+        <div class="nav-left">
+          <div class="brand-badge"><i class="fas fa-gears"></i></div>
+          <div class="title-block">
+            <h1 id="rankTitle" contenteditable="true" class="editable-title" title="点击修改标题">TIER_LIST</h1>
+            <span class="title-sub">MECH.RANK.SYS // v3.0</span>
+          </div>
+        </div>
+
+        <span class="nav-divider" aria-hidden="true"></span>
+
+        <!-- Middle Tools: Upload & Text Card -->
+        <div class="nav-center">
+          <label class="btn btn-primary" title="支持上传多张图片">
+            <i class="fas fa-plus"></i> 上传数据
+            <input type="file" id="upload-input" accept="image/*" multiple hidden>
+          </label>
+
+          <div class="text-add-box">
+            <input type="text" id="text-card-input" placeholder="输入标识符..." class="text-input" />
+            <button id="add-text-btn" class="btn btn-secondary">注入</button>
+          </div>
+        </div>
+
+        <span class="nav-divider" aria-hidden="true"></span>
+
+        <!-- Right Actions: Save, Export, Clear -->
+        <div class="nav-right">
+          <span class="hud-stats" aria-hidden="true">
+            <span class="hud-stat">UNITS <b id="stat-units">0</b></span>
+            <span class="hud-stat">RANKED <b id="stat-ranked">0</b></span>
+          </span>
+          <div class="skin-menu">
+            <button id="skin-btn" class="btn btn-secondary" title="切换界面皮肤">
+              <i class="fas fa-swatchbook"></i> 皮肤
+            </button>
+            <div class="skin-dropdown hidden" id="skin-dropdown">
+              <button class="skin-option" data-skin="mech"><i class="fas fa-gears"></i> 重装机械 <span class="skin-tag">MECH</span></button>
+              <button class="skin-option" data-skin="cyber"><i class="fas fa-bolt"></i> 全息赛博 <span class="skin-tag">CYBER</span></button>
+              <a class="skin-option" href="./夯到拉-2D.html" style="text-decoration:none;border-top:1px solid rgba(127,148,168,.25);"><i class="fas fa-table-cells-large"></i> 2D 版（纸墨 / 白色未来） <span class="skin-tag">2D →</span></a>
+            </div>
+          </div>
+          <a href="./夯到拉-2D.html" class="btn btn-secondary" title="切换到 2D 版" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;"><i class="fas fa-table-cells-large"></i> 2D 版</a>
+          <button id="save-storage-btn" class="btn btn-secondary" title="保存进度到本地存档">
+            <i class="fas fa-database"></i> 存档
+          </button>
+          <button id="export-img-btn" class="btn btn-secondary" title="截取并导出3D画面">
+            <i class="fas fa-camera"></i> 捕获
+          </button>
+          <button id="clear-btn" class="btn btn-ghost" title="清空全部卡片">清除</button>
+          <span class="sys-status" aria-hidden="true"><span class="led"></span>SYS.ONLINE</span>
+        </div>
+      </nav>
+
+      <!-- Tier Labels (Left floating) -->
+      <div id="labels-container">
+        <div class="tier-label glass-panel" style="--tier-color: #ff0055;"><span class="dot"></span><span contenteditable="true">夯</span></div>
+        <div class="tier-label glass-panel" style="--tier-color: #ff6600;"><span class="dot"></span><span contenteditable="true">顶级</span></div>
+        <div class="tier-label glass-panel" style="--tier-color: #ffcc00;"><span class="dot"></span><span contenteditable="true">人上人</span></div>
+        <div class="tier-label glass-panel" style="--tier-color: #00ff88;"><span class="dot"></span><span contenteditable="true">NPC</span></div>
+        <div class="tier-label glass-panel" style="--tier-color: #00ccff;"><span class="dot"></span><span contenteditable="true">拉</span></div>
+      </div>
+
+      <!-- Bottom Right: Control Dock (View Tools + Delete Zone) -->
+      <div class="bottom-controls-right">
+        <div class="dock glass-panel">
+          <span class="dock-tag" aria-hidden="true">CAM.CTRL</span>
+          <div class="dock-group">
+            <button id="toggle-orbit-btn" class="btn btn-secondary" title="开启/关闭手动3D视角旋转">
+              <i class="fas fa-crosshairs"></i> 视角锁定: ON
+            </button>
+            <button id="reset-cam-btn" class="btn btn-secondary" title="重置3D视角">
+              <i class="fas fa-compress-arrows-alt"></i> 重置
+            </button>
+            <button id="align-slots-btn" class="btn btn-secondary" title="将所有卡牌精准归位">
+              <i class="fas fa-th-large"></i> 对齐
+            </button>
+          </div>
+          <span class="dock-sep" aria-hidden="true"></span>
+          <div id="delete-zone" class="delete-zone" title="拖拽卡片至此删除">
+            <i class="fas fa-trash-alt"></i> <span class="dz-text">拖拽删除</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interaction Tip Overlay -->
+      <div class="interaction-tip glass-panel">
+        <i class="fas fa-satellite-dish cyber-icon"></i>
+        <span class="tip-text" id="tip-text">HOVER行触发扫光 <em class="sep">◆</em> HOVER卡牌悬浮旋转 <em class="sep">◆</em> 拖拽火花尾迹 <em class="sep">◆</em> 放置液压锁止</span>
+      </div>
+
+      <!-- HUD Toast Notification -->
+      <div id="hud-toast" class="hud-toast glass-panel" role="status" aria-live="polite">
+        <i class="fas fa-check-circle"></i><span id="hud-toast-text"></span>
+      </div>
+
+      <!-- Bottom Left: Local Storage Archives Drawer -->
+      <div class="archive-drawer glass-panel">
+        <div class="archive-header" id="toggle-archive-btn">
+          <span><i class="fas fa-server"></i> 本地数据库</span>
+          <i class="fas fa-chevron-up" id="archive-chevron"></i>
+        </div>
+        <div class="archive-body hidden" id="archive-list">
+          <div class="empty-archive">暂无存档记录</div>
+        </div>
+      </div>
+
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

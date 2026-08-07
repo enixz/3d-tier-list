@@ -1,0 +1,1079 @@
+/* ===== CYBER SKIN (original holographic theme) ===== */
+/* Activated when localStorage 'hangdaola_skin' === 'cyber' (see index.html boot script) */
+
+/* ===== TOKENS ===== */
+:root {
+  /* Base palette (do NOT change --bg-deep: main.js screenshot bg is hard-coded to it) */
+  --bg-deep: #020816;
+  --text-main: #e6f5ff;
+  --text-muted: #7fb3d5;
+  --cyan: #00f0ff;
+  --blue: #4f8dff;
+  --rose: #ff5e8a;
+  --neon-green: #00ff88;
+
+  /* Semantic accents */
+  --hud-accent: var(--cyan);
+  --hud-accent-2: var(--blue);
+  --hud-danger: var(--rose);
+  --hud-success: var(--neon-green);
+
+  /* Rounded shape system — clean futurism, no chamfers */
+  --radius-lg: 16px;
+  --radius-md: 13px;
+  --radius-sm: 9px;
+
+  /* Soft diffused glows (box-shadow composes with border-radius) */
+  --glow-soft: 0 0 12px color-mix(in srgb, var(--cyan) 10%, transparent);
+  --glow-mid: 0 0 22px color-mix(in srgb, var(--cyan) 16%, transparent);
+
+  --dur-fast: 0.2s;
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', 'Noto Sans SC', sans-serif;
+}
+
+/* ===== BASE & RESET ===== */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-body);
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== LAYOUT ===== */
+
+#canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+body.capturing #ui-layer {
+  display: none !important;
+}
+
+/* ===== COMPONENTS ===== */
+
+/* --- Frosted glass panel: soft gradient body, hairline border, diffused shadow --- */
+.glass-panel {
+  background: linear-gradient(180deg,
+    rgba(16, 32, 64, 0.52),
+    rgba(6, 13, 30, 0.46));
+  border: 1px solid color-mix(in srgb, var(--cyan) 15%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 7%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  pointer-events: auto;
+  position: relative;
+}
+
+/* --- Floating Command Header --- */
+.top-nav {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 64px);
+  max-width: 1240px;
+  box-sizing: border-box;
+  padding: 11px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 20;
+  border-radius: 18px;
+  border-color: color-mix(in srgb, var(--cyan) 22%, transparent);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.45),
+    0 0 28px color-mix(in srgb, var(--cyan) 9%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Slow, single-hue light sweep along the header's bottom edge */
+.nav-scan {
+  position: absolute;
+  bottom: 0;
+  left: 28px;
+  right: 28px;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--cyan) 55%, transparent),
+    color-mix(in srgb, var(--blue) 55%, transparent),
+    transparent);
+  background-size: 200% 100%;
+  animation: lightSweep 6s linear infinite;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Soft segment divider between header sections */
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg,
+    transparent,
+    color-mix(in srgb, var(--cyan) 30%, transparent),
+    transparent);
+  pointer-events: none;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Micro readout under the title */
+.title-sub {
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cyan) 42%, transparent);
+  padding-left: 7px;
+  white-space: nowrap;
+}
+
+.brand-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--cyan) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cyan) 28%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hud-accent);
+  font-size: 0.9rem;
+  position: relative;
+}
+
+/* Breathing glow layer — animated via opacity only (GPU friendly) */
+.brand-badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--cyan) 35%, transparent),
+    inset 0 0 8px color-mix(in srgb, var(--cyan) 20%, transparent);
+  animation: iconPulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.editable-title {
+  font-family: var(--font-display);
+  font-size: 1.42rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--hud-accent);
+  outline: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 4px;
+  transition: border-color var(--dur-fast), background var(--dur-fast), text-shadow var(--dur-fast);
+  cursor: text;
+  padding: 0 6px;
+  text-shadow: 0 0 7px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+
+.editable-title:focus {
+  border-bottom-color: color-mix(in srgb, var(--cyan) 50%, transparent);
+  background: color-mix(in srgb, var(--cyan) 5%, transparent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+/* Middle Tools */
+.nav-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.text-add-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-input {
+  background: color-mix(in srgb, var(--cyan) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cyan) 14%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  outline: none;
+  width: 160px;
+  transition: all 0.25s;
+}
+
+.text-input:focus {
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+  background: color-mix(in srgb, var(--cyan) 7%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--cyan) 12%, transparent);
+}
+
+/* Right Actions */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Online status micro readout */
+.sys-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  font-family: var(--font-display);
+  font-size: 0.52rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: color-mix(in srgb, var(--neon-green) 75%, transparent);
+  white-space: nowrap;
+}
+
+.sys-status .led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow:
+    0 0 6px var(--neon-green),
+    0 0 12px color-mix(in srgb, var(--neon-green) 50%, transparent);
+  animation: ledBlink 2.2s ease-in-out infinite;
+}
+
+/* --- Buttons: rounded, glassy, soft light sweep on hover --- */
+.btn {
+  font-family: var(--font-body);
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--dur-fast) cubic-bezier(0.16, 1, 0.3, 1), background-position 0.55s ease;
+  border: 1px solid color-mix(in srgb, var(--cyan) 20%, transparent);
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  position: relative;
+  color: var(--text-main);
+  background-color: color-mix(in srgb, var(--cyan) 5%, transparent);
+  /* Diagonal sweep-light layer (moved via background-position on hover, GPU friendly) */
+  background-image: linear-gradient(105deg, transparent 42%, color-mix(in srgb, #ffffff 22%, transparent) 50%, transparent 58%);
+  background-size: 220% 100%;
+  background-position: 220% 0;
+  background-repeat: no-repeat;
+}
+
+.btn:hover {
+  background-position: 0 0;
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.btn-primary {
+  background-image:
+    linear-gradient(105deg, transparent 42%, color-mix(in srgb, #ffffff 30%, transparent) 50%, transparent 58%),
+    linear-gradient(135deg, #1fc8ff, var(--blue));
+  background-size: 220% 100%, 100% 100%;
+  border-color: transparent;
+  color: #041422;
+  font-weight: 700;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+.btn-primary:hover {
+  box-shadow: 0 6px 26px color-mix(in srgb, var(--cyan) 38%, transparent);
+}
+
+.btn-secondary:hover {
+  border-color: color-mix(in srgb, var(--cyan) 45%, transparent);
+  background-color: color-mix(in srgb, var(--cyan) 10%, transparent);
+  color: var(--hud-accent);
+  box-shadow: var(--glow-mid);
+}
+
+.btn-ghost {
+  /* Lift the resting state to match the header group: the shared .btn sweep
+     stays intact, and the ghost fill/label use a rose tint (destructive action)
+     instead of the dim muted-steel that made it read as disabled. */
+  background-color: color-mix(in srgb, var(--rose) 6%, transparent);
+  border-color: color-mix(in srgb, var(--hud-danger) 35%, transparent);
+  color: color-mix(in srgb, var(--hud-danger) 80%, #ffffff);
+}
+.btn-ghost:hover {
+  background-color: color-mix(in srgb, var(--rose) 12%, transparent);
+  border-color: color-mix(in srgb, var(--hud-danger) 60%, transparent);
+  color: var(--hud-danger);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rose) 22%, transparent);
+}
+
+/* --- Floating Tier Label Badges (currently disabled) --- */
+#labels-container {
+  display: none !important;
+}
+
+.tier-label {
+  position: absolute;
+  width: 130px;
+  padding: 8px 14px;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: auto;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--tier-color) 45%, transparent);
+  background: rgba(4, 14, 32, 0.55) !important;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 12px color-mix(in srgb, var(--tier-color) 30%, transparent) !important;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.tier-label:hover {
+  box-shadow: 0 0 20px color-mix(in srgb, var(--tier-color) 50%, transparent), inset 0 0 15px color-mix(in srgb, var(--tier-color) 40%, transparent) !important;
+}
+
+.tier-label .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--tier-color);
+  box-shadow: 0 0 10px var(--tier-color);
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+.tier-label span[contenteditable] {
+  outline: none;
+  flex-grow: 1;
+  color: #ffffff;
+  text-shadow: 0 0 10px var(--tier-color);
+}
+
+/* --- Bottom Right: Control Dock --- */
+.bottom-controls-right {
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+}
+
+/* Tiny segment label on the dock's left end */
+.dock-tag {
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: color-mix(in srgb, var(--cyan) 38%, transparent);
+  padding: 0 2px 0 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.dock-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dock .btn {
+  padding: 7px 13px;
+  font-size: 0.85rem;
+}
+
+/* Vertical separator between the tool group and the delete zone */
+.dock-sep {
+  width: 1px;
+  height: 22px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg,
+    transparent,
+    color-mix(in srgb, var(--cyan) 25%, transparent),
+    transparent);
+  pointer-events: none;
+}
+
+/* --- Delete Target Zone (soft rose segment inside the dock) --- */
+.delete-zone {
+  position: relative;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--rose) 26%, transparent);
+  background: color-mix(in srgb, var(--rose) 6%, transparent);
+  color: color-mix(in srgb, var(--rose) 68%, transparent);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: auto;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-zone:hover {
+  border-color: color-mix(in srgb, var(--rose) 45%, transparent);
+  background: color-mix(in srgb, var(--rose) 10%, transparent);
+}
+
+.delete-zone.active {
+  background: color-mix(in srgb, var(--rose) 16%, transparent);
+  border-color: color-mix(in srgb, var(--rose) 65%, transparent);
+  color: #ffffff;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--rose) 60%, transparent);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--rose) 28%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--rose) 10%, transparent);
+}
+
+/* --- Interaction Tip Bar (Bottom Center) --- */
+.interaction-tip {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 20px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--cyan) 65%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  animation: tipPulse 3s infinite ease-in-out;
+  text-transform: uppercase;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.tip-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tip-text .sep {
+  font-style: normal;
+  font-size: 0.55rem;
+  color: color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+/* Terminal readout cursor at the tail of the tip text */
+.interaction-tip::after {
+  content: '▌';
+  color: var(--hud-accent);
+  animation: cursorBlink 1s step-end infinite;
+}
+
+.cyber-icon {
+  color: var(--hud-accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cyan) 70%, transparent));
+}
+
+/* --- Local Archives Drawer (Bottom Left) --- */
+.archive-drawer {
+  position: absolute;
+  bottom: 24px;
+  left: 28px;
+  width: 270px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.archive-header {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cyan) 65%, transparent);
+}
+
+.archive-header:hover {
+  background: color-mix(in srgb, var(--cyan) 4%, transparent);
+  color: var(--hud-accent);
+}
+
+.archive-body {
+  max-height: 170px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--cyan) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.archive-body.hidden {
+  display: none;
+}
+
+/* Scrollbar style */
+.archive-body::-webkit-scrollbar {
+  width: 4px;
+}
+.archive-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.archive-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--cyan) 18%, transparent);
+  border-radius: 2px;
+}
+
+.empty-archive {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 8px 0;
+  letter-spacing: 0.05em;
+}
+
+.archive-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: color-mix(in srgb, var(--cyan) 3%, transparent);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--cyan) 6%, transparent);
+  transition: border-color var(--dur-fast);
+}
+
+.archive-item:hover {
+  border-color: color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+
+.archive-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-title {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.archive-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.archive-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.archive-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color var(--dur-fast), text-shadow var(--dur-fast);
+}
+
+.archive-btn:hover {
+  color: var(--hud-accent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
+/* ===== AMBIENCE ===== */
+
+/* Soft cinematic vignette (decorative only) */
+.hud-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--bg-deep) 75%, transparent) 100%);
+}
+
+/* CRT scanlines — static texture, extremely subtle */
+.hud-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(0deg,
+    rgba(180, 235, 255, 0.028) 0 1px,
+    transparent 1px 3px);
+}
+
+/* Slow roaming scan band sweeping top → bottom */
+.hud-scanband {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -30%;
+  height: 30%;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(180deg,
+    transparent,
+    color-mix(in srgb, var(--cyan) 4%, transparent) 70%,
+    color-mix(in srgb, var(--cyan) 9%, transparent));
+  animation: scanbandDrift 9s linear infinite;
+}
+
+/* One-shot boot sweep line (runs once when .pre-boot lifts) */
+.boot-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--cyan) 85%, transparent),
+    #ffffff,
+    color-mix(in srgb, var(--cyan) 85%, transparent),
+    transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--cyan) 60%, transparent);
+}
+body:not(.pre-boot) .boot-line {
+  animation: bootSweep 0.9s cubic-bezier(0.23, 1, 0.32, 1) 0.05s both;
+}
+
+/* --- Boot entrance: panels stagger in after the sweep --- */
+.top-nav,
+.archive-drawer,
+.bottom-controls-right,
+.interaction-tip {
+  transition: opacity 0.55s cubic-bezier(0.23, 1, 0.32, 1), transform 0.55s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.pre-boot .top-nav {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-16px);
+}
+.pre-boot .archive-drawer {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.pre-boot .bottom-controls-right {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.pre-boot .interaction-tip {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+}
+body:not(.pre-boot) .top-nav             { transition-delay: 0.15s; }
+body:not(.pre-boot) .archive-drawer      { transition-delay: 0.35s; }
+body:not(.pre-boot) .bottom-controls-right { transition-delay: 0.45s; }
+body:not(.pre-boot) .interaction-tip     { transition-delay: 0.6s; }
+/* tipPulse starts after entrance settles */
+body:not(.pre-boot) .interaction-tip {
+  animation: tipPulse 3s infinite ease-in-out 1.4s;
+}
+.interaction-tip { animation: none; }
+
+/* --- Cursor reticle (canvas region only) --- */
+#hud-reticle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  will-change: transform;
+}
+#hud-reticle.visible { opacity: 1; }
+
+#hud-reticle .ret-ring {
+  position: absolute;
+  inset: 8px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 55%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 25%, transparent);
+}
+#hud-reticle .ret-cross-h,
+#hud-reticle .ret-cross-v {
+  position: absolute;
+  background: color-mix(in srgb, var(--cyan) 60%, transparent);
+}
+#hud-reticle .ret-cross-h { left: 0; right: 0; top: 50%; height: 1px; }
+#hud-reticle .ret-cross-v { top: 0; bottom: 0; left: 50%; width: 1px; }
+#hud-reticle .ret-coords {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: calc(50% + 16px);
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--cyan) 70%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+/* Reticle accelerates + tints while dragging a card */
+#hud-reticle.dragging .ret-ring {
+  border-color: color-mix(in srgb, var(--rose) 75%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rose) 40%, transparent);
+  transform: scale(1.25);
+}
+#hud-reticle .ret-ring { transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.2s, box-shadow 0.2s; }
+
+/* --- Live HUD stats in the nav --- */
+.hud-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 4px;
+  pointer-events: none;
+}
+.hud-stat {
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--cyan) 40%, transparent);
+  white-space: nowrap;
+}
+.hud-stat b {
+  font-weight: 700;
+  font-size: 0.62rem;
+  color: var(--hud-accent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 45%, transparent);
+  min-width: 2ch;
+  display: inline-block;
+  text-align: center;
+}
+/* Number bump on change */
+.hud-stat b.bump { animation: statBump 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+
+/* --- HUD Toast --- */
+.hud-toast {
+  position: absolute;
+  top: 86px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--hud-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1), transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.hud-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.hud-toast i { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cyan) 70%, transparent)); }
+
+/* --- Tip rotation fade --- */
+.tip-text {
+  transition: opacity 0.3s ease;
+}
+.tip-text.fading { opacity: 0; }
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes lightSweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes tipPulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@keyframes iconPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes ledBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+@keyframes scanbandDrift {
+  0% { top: -30%; }
+  100% { top: 110%; }
+}
+
+@keyframes bootSweep {
+  0% { top: 0; opacity: 0; }
+  8% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes statBump {
+  0% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  .hud-scanband,
+  .nav-scan,
+  .boot-line {
+    animation: none !important;
+    display: none;
+  }
+  .brand-badge::before,
+  .sys-status .led,
+  .tier-label .dot {
+    animation: none !important;
+  }
+  .interaction-tip,
+  body:not(.pre-boot) .interaction-tip {
+    animation: none !important;
+  }
+  .top-nav,
+  .archive-drawer,
+  .bottom-controls-right,
+  .interaction-tip,
+  .hud-toast,
+  .btn {
+    transition-duration: 0.01s !important;
+    transition-delay: 0s !important;
+  }
+  #hud-reticle { display: none; }
+}
+
+/* ===== MEDIA QUERIES ===== */
+
+@media (max-width: 900px) {
+  .text-input {
+    width: 110px;
+  }
+  .interaction-tip {
+    display: none;
+  }
+  .top-nav {
+    padding: 8px 14px;
+  }
+  .nav-left,
+  .nav-center,
+  .nav-right {
+    gap: 8px;
+  }
+  /* Decorative micro-elements fold away on tight layouts */
+  .title-sub,
+  .sys-status,
+  .nav-divider,
+  .dock-tag {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .top-nav {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .nav-center {
+    flex: none;
+  }
+  .nav-left {
+    gap: 8px;
+  }
+  .nav-center,
+  .nav-right {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .dock {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .dock .btn {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+  .dz-text {
+    display: none;
+  }
+}
+
+/* --- Skin Switcher Menu (cyber flavor) --- */
+.skin-menu {
+  position: relative;
+}
+
+.skin-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 172px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 30;
+  background: linear-gradient(180deg,
+    rgba(16, 32, 64, 0.85),
+    rgba(6, 13, 30, 0.82));
+  border: 1px solid color-mix(in srgb, var(--cyan) 22%, transparent);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    0 0 22px color-mix(in srgb, var(--cyan) 10%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transform-origin: top right;
+  animation: skinMenuIn 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.skin-dropdown.hidden {
+  display: none;
+}
+
+.skin-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--cyan) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cyan) 8%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+
+.skin-option:hover {
+  border-color: color-mix(in srgb, var(--cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--cyan) 8%, transparent);
+  color: var(--hud-accent);
+}
+
+.skin-option.active {
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  color: var(--hud-accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+
+.skin-option .skin-tag {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+
+@keyframes skinMenuIn {
+  0% { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-dropdown {
+    animation: none !important;
+  }
+}
