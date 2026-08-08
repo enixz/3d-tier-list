@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:single": "vite build --config vite.singlefile.config.js",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vite-plugin-singlefile": "^2.3.3"
   },
   "dependencies": {
     "gsap": "^3.12.5",

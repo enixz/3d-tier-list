@@ -9,8 +9,19 @@
 [![Three.js](https://img.shields.io/badge/Three.js-0.160-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![GSAP](https://img.shields.io/badge/GSAP-3.12-88CE02?logo=greensock&logoColor=white)](https://gsap.com/)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![下载便携版](https://img.shields.io/badge/下载-便携版_v1.0.0-brightgreen?logo=github)](https://github.com/enixz/3d-tier-list/releases/latest)
 
 </div>
+
+## 📥 免安装,直接用
+
+不想配环境?去 [**Releases**](https://github.com/enixz/3d-tier-list/releases/latest) 下载便携版 zip ——
+解压后双击 HTML 文件,浏览器打开即玩,无需 Node、无需服务器:
+
+- `夯到拉-3D.html` — 3D 版(单文件,全部资源内嵌)
+- `夯到拉-2D.html` — 2D 版(单文件,零依赖)
+
+> 两版卡牌数据互通,存档保存在浏览器本地。
 
 ---
 
