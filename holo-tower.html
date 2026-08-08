@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>夯到拉 · 全息领奖台 HOLO TIER TOWER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #020812; }
+  #app { position: fixed; inset: 0; }
+  .hud { position: fixed; z-index: 10; pointer-events: none; color: #cfefff;
+         font-family: 'Orbitron', 'Noto Sans SC', sans-serif; }
+  .hud-title { top: 28px; left: 34px; pointer-events: auto; }
+  .hud-title h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 4px; outline: none;
+    background: linear-gradient(90deg, #7df9ff, #ffc94d); -webkit-background-clip: text;
+    background-clip: text; color: transparent; text-shadow: 0 0 24px rgba(0,240,255,.25);
+    cursor: text; border-bottom: 1px dashed transparent; transition: border-color .2s; }
+  .hud-title h1:hover, .hud-title h1:focus { border-bottom-color: rgba(125,249,255,.35); }
+  .hud-title p { margin: 6px 0 0; font-size: 11px; letter-spacing: 6px; opacity: .55; }
+  .hud-hint { bottom: 26px; left: 50%; transform: translateX(-50%); max-width: 92vw;
+    font-size: 11px; letter-spacing: 3px; opacity: .5; text-align: center; line-height: 1.9; }
+  .hud-frame { inset: 14px; border: 1px solid rgba(0,240,255,.14); border-radius: 6px; }
+  .hud-frame::before, .hud-frame::after { content: ''; position: absolute; width: 26px; height: 26px;
+    border: 2px solid rgba(0,240,255,.5); }
+  .hud-frame::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+  .hud-frame::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+  .vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(1,4,10,.75) 100%); }
+
+  /* ==================== 右上角菜单坞（收起时只有一颗按钮，不遮挡画面） ==================== */
+  #menu-dock { position: fixed; top: 26px; right: 26px; z-index: 30;
+    font-family: 'Orbitron', 'Noto Sans SC', sans-serif; }
+  #menu-toggle { width: 42px; height: 42px; border-radius: 8px; cursor: pointer;
+    background: rgba(4,12,26,.72); border: 1px solid rgba(0,240,255,.35); color: #7df9ff;
+    font-size: 17px; letter-spacing: 0; backdrop-filter: blur(6px);
+    box-shadow: 0 0 18px rgba(0,240,255,.12); transition: all .2s; }
+  #menu-toggle:hover { border-color: rgba(0,240,255,.8); box-shadow: 0 0 24px rgba(0,240,255,.3); }
+  #menu-panel { position: absolute; top: 52px; right: 0; width: 236px; padding: 14px;
+    background: rgba(3,9,22,.88); border: 1px solid rgba(0,240,255,.28); border-radius: 10px;
+    backdrop-filter: blur(10px); box-shadow: 0 8px 40px rgba(0,0,0,.5), 0 0 24px rgba(0,240,255,.08);
+    display: flex; flex-direction: column; gap: 8px;
+    opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .18s, transform .18s; }
+  #menu-panel.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .hbtn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    padding: 9px 10px; border-radius: 6px; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    background: rgba(10,24,48,.6); border: 1px solid rgba(0,240,255,.25); color: #bfeaff;
+    transition: all .15s; text-decoration: none; box-sizing: border-box; }
+  .hbtn:hover { border-color: rgba(0,240,255,.7); color: #fff; background: rgba(14,34,64,.85); }
+  .hbtn.primary { background: linear-gradient(90deg, rgba(0,180,220,.35), rgba(0,120,200,.25));
+    border-color: rgba(125,249,255,.6); color: #eafcff; }
+  .hbtn.danger { border-color: rgba(255,90,90,.35); color: #ffb3b3; }
+  .hbtn.danger:hover { border-color: rgba(255,90,90,.8); background: rgba(80,16,20,.5); color: #fff; }
+  .hrow { display: flex; gap: 6px; }
+  .hrow .hbtn { flex: 1; width: auto; }
+  #text-card-input { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 6px;
+    background: rgba(6,14,30,.8); border: 1px solid rgba(0,240,255,.25); color: #eaf6ff;
+    font-family: inherit; font-size: 12px; letter-spacing: 1px; outline: none; }
+  #text-card-input:focus { border-color: rgba(125,249,255,.7); }
+  .menu-sep { height: 1px; background: linear-gradient(90deg, transparent, rgba(0,240,255,.3), transparent); margin: 2px 0; }
+  .menu-stats { font-size: 10px; letter-spacing: 2px; color: rgba(160,210,240,.6); text-align: center; }
+  .menu-stats b { color: #7df9ff; font-weight: 900; }
+  #archive-list { display: flex; flex-direction: column; gap: 6px; max-height: 132px; overflow-y: auto; }
+  #archive-list::-webkit-scrollbar { width: 4px; }
+  #archive-list::-webkit-scrollbar-thumb { background: rgba(0,240,255,.3); border-radius: 2px; }
+  .archive-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 6px;
+    background: rgba(8,18,38,.6); border: 1px solid rgba(0,240,255,.15); }
+  .archive-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .archive-title { font-size: 11px; font-weight: 700; color: #d5f2ff; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; letter-spacing: 1px; }
+  .archive-date { font-size: 9px; color: rgba(150,200,230,.45); letter-spacing: 1px; }
+  .archive-btn { width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    background: rgba(0,240,255,.08); border: 1px solid rgba(0,240,255,.25); color: #9fe8ff; }
+  .archive-btn:hover { border-color: rgba(125,249,255,.8); color: #fff; }
+  .archive-btn.del:hover { border-color: rgba(255,90,90,.8); color: #ffb3b3; }
+  .empty-archive { font-size: 10px; letter-spacing: 2px; color: rgba(150,200,230,.4); text-align: center; padding: 8px 0; }
+
+  /* ==================== 粉碎回收区（仅拖拽时出现） ==================== */
+  #delete-zone { position: fixed; right: 28px; bottom: 28px; z-index: 25; width: 148px; height: 148px;
+    border: 2px dashed rgba(255,90,90,.55); border-radius: 14px; color: #ff9a9a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    font-family: 'Orbitron', 'Noto Sans SC', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 3px;
+    background: rgba(40,5,10,.38); backdrop-filter: blur(4px);
+    opacity: 0; transform: scale(.85); pointer-events: none; transition: all .18s; }
+  #delete-zone .dz-icon { font-size: 26px; }
+  #delete-zone.visible { opacity: 1; transform: scale(1); }
+  #delete-zone.hot { background: rgba(255,45,45,.28); border-color: #ff5a5a; color: #fff;
+    box-shadow: 0 0 34px rgba(255,60,60,.4); transform: scale(1.06); }
+
+  /* ==================== 提示 Toast ==================== */
+  #holo-toast { position: fixed; bottom: 74px; left: 50%; z-index: 40; pointer-events: none;
+    transform: translateX(-50%) translateY(10px); opacity: 0; transition: all .25s;
+    padding: 10px 24px; border-radius: 6px; font-family: 'Orbitron', 'Noto Sans SC', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px; color: #9ff5ff;
+    background: rgba(3,10,24,.9); border: 1px solid rgba(0,240,255,.4);
+    box-shadow: 0 0 26px rgba(0,240,255,.15); }
+  #holo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div class="vignette"></div>
+<div class="hud hud-frame"></div>
+<div class="hud hud-title"><h1 id="rankTitle" contenteditable="true" spellcheck="false" title="点击修改标题">夯到拉 · 全息领奖台</h1><p>HOLO TIER TOWER // PANORAMA</p></div>
+<div class="hud hud-hint">抓卡牌拖到圆盘 = 排位 ◆ 拖到待定区 = 撤下 ◆ 双击卡牌 = 翻转铭牌 ◆ 拖空白处 = 旋转视角<br>拖拽时右下角 = 粉碎回收 ◆ 右上角菜单 = 导入图片 / 注入文本 / 存档读档 / 捕获画面</div>
+
+<div id="menu-dock">
+  <button id="menu-toggle" title="功能菜单">☰</button>
+  <div id="menu-panel">
+    <button id="upload-btn" class="hbtn primary" title="支持上传多张图片">⇪ 导入图片</button>
+    <div class="hrow">
+      <input type="text" id="text-card-input" placeholder="输入标识符..." maxlength="24" />
+      <button id="add-text-btn" class="hbtn" style="flex:0 0 auto; padding-left:14px; padding-right:14px;" title="注入文本卡牌">注入</button>
+    </div>
+    <div class="menu-sep"></div>
+    <button id="save-btn" class="hbtn" title="保存进度到本地存档">▣ 存档</button>
+    <div id="archive-list"></div>
+    <div class="menu-sep"></div>
+    <button id="capture-btn" class="hbtn" title="截取并导出当前画面">⬒ 捕获画面</button>
+    <button id="clear-btn" class="hbtn danger" title="清空全部卡牌">✕ 清空卡牌</button>
+    <div class="menu-sep"></div>
+    <div class="menu-stats">UNITS <b id="stat-units">0</b> · RANKED <b id="stat-ranked">0</b></div>
+    <div class="hrow">
+      <a href="./index.html" class="hbtn" title="切换到 3D 版">3D 版</a>
+      <a href="./夯到拉-2D.html" class="hbtn" title="切换到 2D 版">2D 版</a>
+    </div>
+  </div>
+</div>
+<input type="file" id="upload-input" accept="image/*" multiple hidden>
+
+<div id="delete-zone"><span class="dz-icon">♻</span>粉碎回收</div>
+<div id="holo-toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// ==================== 基础 ====================
+const app = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020812);
+scene.fog = new THREE.FogExp2(0x020812, 0.0060);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500);
+camera.position.set(0, 14, 44);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+app.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 10.5, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+controls.minDistance = 14;
+controls.maxDistance = 80;
+controls.maxPolarAngle = Math.PI / 1.75;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.8, 0.42, 0.34);
+composer.addPass(bloom);
+
+// ==================== 灯光 ====================
+scene.add(new THREE.AmbientLight(0x0a1a3a, 0.85));
+const keyLight = new THREE.DirectionalLight(0x66ccff, 1.1); keyLight.position.set(14, 26, 12); scene.add(keyLight);
+const rimLight  = new THREE.DirectionalLight(0xff8c3a, 0.55); rimLight.position.set(-10, 8, -16); scene.add(rimLight);
+const cyanL = new THREE.PointLight(0x00e5ff, 1.0, 90, 2); cyanL.position.set(-20, 10, 16); scene.add(cyanL);
+const orangeL = new THREE.PointLight(0xff7a1a, 0.8, 90, 2); orangeL.position.set(20, 4, 16); scene.add(orangeL);
+
+// ==================== 贴图工具 ====================
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.35, 'rgba(255,255,255,.45)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+function scanBarTexture() {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 32;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 256, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(0.5, 'rgba(255,255,255,.9)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 256, 32);
+  return new THREE.CanvasTexture(c);
+}
+const softGlow = glowTexture();
+const scanBar = scanBarTexture();
+
+// LED 细颗粒点阵跑马灯字带（细字体 + 密排）
+function ledBandTexture(name, code, colorHex) {
+  const W = 2048, H = 128;
+  const base = document.createElement('canvas'); base.width = W; base.height = H;
+  const x = base.getContext('2d');
+  x.fillStyle = 'rgba(2, 6, 16, 0.92)'; x.fillRect(0, 0, W, H);
+
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const tx = tmp.getContext('2d');
+  tx.font = '500 84px "Noto Sans SC", sans-serif';   // 细字重
+  tx.textBaseline = 'middle'; tx.fillStyle = '#fff';
+  const unit = `${name} · ${code} ◆ `;
+  let px = 8;
+  while (px < W) { tx.fillText(unit, px, 70); px += tx.measureText(unit).width + 18; }
+  const mask = tx.getImageData(0, 0, W, H).data;
+
+  const step = 6;                                     // 细颗粒
+  for (let gy = step / 2; gy < H; gy += step) {
+    for (let gx = step / 2; gx < W; gx += step) {
+      const on = mask[((gy | 0) * W + (gx | 0)) * 4 + 3] > 110;
+      x.beginPath();
+      if (on) {
+        x.fillStyle = colorHex; x.shadowColor = colorHex; x.shadowBlur = 5;
+        x.arc(gx, gy, 2.1, 0, 7);
+      } else {
+        x.fillStyle = 'rgba(120, 160, 200, 0.06)'; x.shadowBlur = 0;
+        x.arc(gx, gy, 1.5, 0, 7);
+      }
+      x.fill();
+    }
+  }
+  const t = new THREE.CanvasTexture(base);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  return t;
+}
+
+// ==================== 金属卡牌贴图 ====================
+function drawShip(x, cx, cy, s, hue) {
+  x.save(); x.translate(cx, cy); x.scale(s, s);
+  const body = x.createLinearGradient(0, -30, 0, 30);
+  body.addColorStop(0, `hsl(${hue}, 30%, 62%)`);
+  body.addColorStop(0.5, `hsl(${hue}, 25%, 30%)`);
+  body.addColorStop(1, `hsl(${hue}, 30%, 14%)`);
+  x.fillStyle = body;
+  x.beginPath();
+  x.moveTo(-90, 10); x.lineTo(-30, -16); x.lineTo(48, -20); x.lineTo(96, 0);
+  x.lineTo(48, 14); x.lineTo(-30, 22); x.closePath(); x.fill();
+  x.fillStyle = `hsl(${hue}, 28%, 42%)`;
+  x.beginPath(); x.moveTo(-10, -16); x.lineTo(18, -34); x.lineTo(34, -18); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(-24, 20); x.lineTo(6, 44); x.lineTo(22, 16); x.closePath(); x.fill();
+  x.fillStyle = 'rgba(140,240,255,.9)';
+  x.shadowColor = '#8cf0ff'; x.shadowBlur = 8;
+  for (let i = 0; i < 5; i++) x.fillRect(-28 + i * 16, -4, 8, 3);
+  x.fillStyle = 'rgba(120,220,255,.85)'; x.shadowBlur = 18;
+  x.beginPath(); x.moveTo(-90, 4); x.lineTo(-118, 10); x.lineTo(-90, 16); x.closePath(); x.fill();
+  x.restore();
+}
+
+function cardBase(x, frameColor) {
+  const bg = x.createLinearGradient(0, 0, 0, 680);
+  bg.addColorStop(0, '#0c1526'); bg.addColorStop(0.55, '#070d1a'); bg.addColorStop(1, '#04070f');
+  x.fillStyle = bg; x.fillRect(0, 0, 512, 680);
+}
+
+function cardFrame(x, frameColor) {
+  x.strokeStyle = frameColor; x.lineWidth = 5;
+  x.shadowColor = frameColor; x.shadowBlur = 18;
+  x.strokeRect(10, 10, 492, 660);
+  x.shadowBlur = 0;
+  x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2;
+  x.strokeRect(18, 18, 476, 644);
+}
+
+function cardStats(x, atk, def) {
+  x.textAlign = 'left';
+  x.font = '700 26px Orbitron, sans-serif';
+  x.fillStyle = 'rgba(170,210,240,.75)';
+  x.fillText('ATTACK', 40, 590); x.fillText('DEFENSE', 280, 590);
+  x.font = '900 40px Orbitron, sans-serif'; x.fillStyle = '#ffffff';
+  x.fillText(atk, 40, 636); x.fillText(def, 280, 636);
+}
+
+function toTexture(c) {
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+function cardTexture(name, sub, atk, def, frameColor, hue) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 680;
+  const x = c.getContext('2d');
+  cardBase(x, frameColor);
+  x.save();
+  x.beginPath(); x.rect(34, 92, 444, 330); x.clip();
+  const art = x.createLinearGradient(0, 92, 0, 422);
+  art.addColorStop(0, `hsl(${hue}, 60%, 16%)`); art.addColorStop(1, `hsl(${hue + 30}, 55%, 6%)`);
+  x.fillStyle = art; x.fillRect(34, 92, 444, 330);
+  x.fillStyle = 'rgba(255,255,255,.8)';
+  for (let i = 0; i < 40; i++) x.fillRect(34 + Math.random() * 444, 92 + Math.random() * 330, 2, 2);
+  x.strokeStyle = `hsla(${hue + 40}, 80%, 60%, .5)`; x.lineWidth = 26;
+  x.beginPath(); x.arc(430, 460, 190, Math.PI, Math.PI * 1.6); x.stroke();
+  drawShip(x, 256, 250, 1.5, hue);
+  x.restore();
+  x.font = '700 20px Orbitron, sans-serif'; x.fillStyle = 'rgba(180,220,255,.65)';
+  x.textAlign = 'left'; x.fillText(sub, 36, 52);
+  x.font = '900 44px Orbitron, "Noto Sans SC", sans-serif';
+  x.fillStyle = '#eaf6ff'; x.shadowColor = frameColor; x.shadowBlur = 4;
+  x.fillText(name, 34, 490);
+  x.shadowBlur = 0;
+  cardStats(x, atk, def);
+  cardFrame(x, frameColor);
+  return toTexture(c);
+}
+
+// 图片卡牌：用户图片中心裁切进画面区
+function imageCardTexture(img, name, frameColor) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 680;
+  const x = c.getContext('2d');
+  cardBase(x, frameColor);
+  x.save();
+  x.beginPath(); x.rect(34, 92, 444, 330); x.clip();
+  const targetAspect = 444 / 330;
+  let sw, sh, sx, sy;
+  const aspect = img.width / img.height;
+  if (aspect > targetAspect) { sh = img.height; sw = img.height * targetAspect; sx = (img.width - sw) / 2; sy = 0; }
+  else { sw = img.width; sh = img.width / targetAspect; sx = 0; sy = (img.height - sh) / 2; }
+  x.drawImage(img, sx, sy, sw, sh, 34, 92, 444, 330);
+  const shade = x.createLinearGradient(0, 300, 0, 422);
+  shade.addColorStop(0, 'rgba(4,8,16,0)'); shade.addColorStop(1, 'rgba(4,8,16,.55)');
+  x.fillStyle = shade; x.fillRect(34, 92, 444, 330);
+  x.restore();
+  x.strokeStyle = 'rgba(140,220,255,.4)'; x.lineWidth = 3;
+  x.strokeRect(34, 92, 444, 330);
+  x.font = '700 20px Orbitron, sans-serif'; x.fillStyle = 'rgba(180,220,255,.65)';
+  x.textAlign = 'left'; x.fillText('IMAGE UNIT', 36, 52);
+  x.font = '900 40px Orbitron, "Noto Sans SC", sans-serif';
+  x.fillStyle = '#eaf6ff'; x.shadowColor = frameColor; x.shadowBlur = 4;
+  const disp = name.length > 12 ? name.slice(0, 12) + '…' : name;
+  x.fillText(disp, 34, 490);
+  x.shadowBlur = 0;
+  cardStats(x, (8.4 + Math.random() * 1.5).toFixed(1), (8.4 + Math.random() * 1.5).toFixed(1));
+  cardFrame(x, frameColor);
+  return toTexture(c);
+}
+
+// 文本卡牌：大字标识符
+function textCardTexture(text, frameColor, hue) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 680;
+  const x = c.getContext('2d');
+  cardBase(x, frameColor);
+  x.save();
+  x.beginPath(); x.rect(34, 92, 444, 330); x.clip();
+  const art = x.createLinearGradient(0, 92, 0, 422);
+  art.addColorStop(0, `hsl(${hue}, 55%, 14%)`); art.addColorStop(1, `hsl(${hue + 30}, 50%, 5%)`);
+  x.fillStyle = art; x.fillRect(34, 92, 444, 330);
+  x.strokeStyle = 'rgba(140,200,255,.06)'; x.lineWidth = 8;
+  for (let i = -330; i < 444; i += 40) {
+    x.beginPath(); x.moveTo(34 + i, 92); x.lineTo(34 + i + 330, 422); x.stroke();
+  }
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  let fs = 72;
+  x.font = `900 ${fs}px Orbitron, "Noto Sans SC", sans-serif`;
+  while (fs > 22 && x.measureText(text).width > 400) { fs -= 4; x.font = `900 ${fs}px Orbitron, "Noto Sans SC", sans-serif`; }
+  x.fillStyle = '#eaf6ff'; x.shadowColor = frameColor; x.shadowBlur = 20;
+  x.fillText(text, 256, 258);
+  x.restore();
+  x.strokeStyle = 'rgba(140,220,255,.35)'; x.lineWidth = 3;
+  x.strokeRect(34, 92, 444, 330);
+  x.font = '700 20px Orbitron, sans-serif'; x.fillStyle = 'rgba(180,220,255,.65)';
+  x.textAlign = 'left'; x.fillText('TEXT UNIT', 36, 52);
+  x.shadowBlur = 0;
+  cardStats(x, (8.4 + Math.random() * 1.5).toFixed(1), (8.4 + Math.random() * 1.5).toFixed(1));
+  cardFrame(x, frameColor);
+  return toTexture(c);
+}
+
+// 铭牌背面
+function cardBackTexture(name, frameColor) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 680;
+  const x = c.getContext('2d');
+  const bg = x.createLinearGradient(0, 0, 512, 680);
+  bg.addColorStop(0, '#0a1222'); bg.addColorStop(1, '#040810');
+  x.fillStyle = bg; x.fillRect(0, 0, 512, 680);
+  // 斜纹
+  x.strokeStyle = 'rgba(140, 200, 255, 0.05)'; x.lineWidth = 10;
+  for (let i = -680; i < 512; i += 46) {
+    x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 680, 680); x.stroke();
+  }
+  // 中央大字
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  let fs = 120;
+  x.font = `900 ${fs}px "Noto Sans SC", sans-serif`;
+  while (fs > 34 && x.measureText(name).width > 440) { fs -= 6; x.font = `900 ${fs}px "Noto Sans SC", sans-serif`; }
+  x.fillStyle = '#eaf6ff'; x.shadowColor = frameColor; x.shadowBlur = 26;
+  x.fillText(name, 256, 330);
+  // 上下小字
+  x.shadowBlur = 8;
+  x.font = '700 30px Orbitron, sans-serif'; x.fillStyle = frameColor;
+  x.fillText('HOLO TIER', 256, 120);
+  x.font = '500 24px "Noto Sans SC", sans-serif'; x.fillStyle = 'rgba(180,220,255,.7)';
+  x.fillText('夯到拉 · RANK.SYS', 256, 580);
+  x.shadowBlur = 0;
+  // 边框
+  x.strokeStyle = frameColor; x.lineWidth = 5;
+  x.shadowColor = frameColor; x.shadowBlur = 18;
+  x.strokeRect(10, 10, 492, 660);
+  x.shadowBlur = 0;
+  x.strokeStyle = 'rgba(255,255,255,.3)'; x.lineWidth = 2;
+  x.strokeRect(18, 18, 476, 644);
+  return toTexture(c);
+}
+
+// ==================== 布局常量 ====================
+const CARD_W = 2.0, CARD_H = 2.66;
+const DISC_H = 1.7;
+const TIER_GAP = 2.6;
+const STEP = DISC_H + TIER_GAP;
+
+const TIERS = [
+  { name: '拉',     code: 'B',   color: 0x22d3ee, css: '#22d3ee', r: 8.6, y: DISC_H / 2 },
+  { name: 'NPC',    code: 'A',   color: 0x3b82f6, css: '#3b82f6', r: 7.4, y: DISC_H / 2 + STEP },
+  { name: '人上人', code: 'S',   color: 0x8b5cf6, css: '#8b5cf6', r: 6.2, y: DISC_H / 2 + STEP * 2 },
+  { name: '顶级',   code: 'SR',  color: 0xd946ef, css: '#d946ef', r: 5.0, y: DISC_H / 2 + STEP * 3 },
+  { name: '夯',     code: 'SSR', color: 0xffc94d, css: '#ffc94d', r: 3.8, y: DISC_H / 2 + STEP * 4 },
+];
+const TOP_SURFACE = TIERS[4].y + DISC_H / 2;
+
+// ==================== 五层圆柱塔 + 落位高亮环 ====================
+const tower = new THREE.Group();
+const sweeps = [];
+const marqueeBands = [];
+const tierFx = [];        // 每层的高亮动画状态
+const dropTargets = [];   // 拖拽落点射线检测网格
+
+TIERS.forEach((t, i) => {
+  const disc = new THREE.Group();
+  disc.position.y = t.y;
+
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0a1020, metalness: 0.88, roughness: 0.3,
+    emissive: t.color, emissiveIntensity: 0.05,
+    transparent: true, opacity: 0.94
+  });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(t.r, t.r * 1.04, DISC_H, 84), bodyMat);
+  body.userData.dropTier = i;
+  disc.add(body);
+  dropTargets.push(body);
+
+  const filmMat = new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.09, blending: THREE.AdditiveBlending, depthWrite: false });
+  const film = new THREE.Mesh(new THREE.CircleGeometry(t.r - 0.15, 84), filmMat);
+  film.rotation.x = -Math.PI / 2; film.position.y = DISC_H / 2 + 0.02;
+  film.userData.dropTier = i;
+  disc.add(film);
+  dropTargets.push(film);
+
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(t.r, 0.06, 12, 120),
+    new THREE.MeshBasicMaterial({ color: t.color })
+  );
+  rim.rotation.x = Math.PI / 2; rim.position.y = DISC_H / 2;
+  rim.userData.dropTier = i;
+  disc.add(rim);
+  dropTargets.push(rim);
+
+  // 落位高亮环（平时隐藏，拖到盘面上方时发光）
+  const hlMat = new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const hlRing = new THREE.Mesh(new THREE.TorusGeometry(t.r + 0.15, 0.1, 12, 120), hlMat);
+  hlRing.rotation.x = Math.PI / 2; hlRing.position.y = DISC_H / 2 + 0.05;
+  hlRing.raycast = () => {};
+  disc.add(hlRing);
+  tierFx.push({ hlMat, filmMat, bodyMat, hot: 0 });
+
+  const bandTex = ledBandTexture(t.name, t.code, t.css);
+  const bandMat = new THREE.MeshBasicMaterial({ map: bandTex, transparent: true, opacity: 1.0, depthWrite: false, side: THREE.FrontSide });
+  const band = new THREE.Mesh(
+    new THREE.CylinderGeometry(t.r * 1.04 + 0.06, t.r * 1.04 + 0.06, DISC_H * 0.72, 84, 1, true),
+    bandMat
+  );
+  band.raycast = () => {};
+  disc.add(band);
+  marqueeBands.push({ mesh: band, mat: bandMat, tex: bandTex, speed: 0.045 + (i % 2) * 0.02 });
+
+  const sw = new THREE.Mesh(
+    new THREE.PlaneGeometry(t.r * 2, 1.0),
+    new THREE.MeshBasicMaterial({ map: scanBar, color: t.color, transparent: true, opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  sw.rotation.x = -Math.PI / 2; sw.position.y = DISC_H / 2 + 0.06;
+  sw.raycast = () => {};
+  disc.add(sw);
+  sweeps.push({ mesh: sw, speed: 0.22 + i * 0.07 });
+
+  tower.add(disc);
+});
+scene.add(tower);
+
+// 层级改名（与 3D/2D 版的草稿互通时同步段位名）：重新生成 LED 字带
+function setTierName(i, name) {
+  if (!name) return;
+  TIERS[i].name = name;
+  const band = marqueeBands[i];
+  const old = band.tex;
+  band.tex = ledBandTexture(name, TIERS[i].code, TIERS[i].css);
+  band.mat.map = band.tex;
+  band.mat.needsUpdate = true;
+  if (old) old.dispose();
+}
+
+// 顶部金色王冠环 + 光柱 + 探照灯
+const crown = new THREE.Mesh(
+  new THREE.TorusGeometry(2.2, 0.08, 12, 64),
+  new THREE.MeshBasicMaterial({ color: 0xffc94d })
+);
+crown.rotation.x = Math.PI / 2;
+crown.position.y = TOP_SURFACE + 4.6;
+scene.add(crown);
+const upBeam = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.32, 0.85, 8, 24, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+);
+upBeam.position.y = TOP_SURFACE + 8;
+scene.add(upBeam);
+const spotCone = new THREE.Mesh(
+  new THREE.ConeGeometry(4.2, 12, 48, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+);
+spotCone.position.y = TOP_SURFACE + 6;
+scene.add(spotCone);
+const spotLight = new THREE.PointLight(0xffd76a, 1.8, 42, 2);
+spotLight.position.set(0, TOP_SURFACE + 5.5, 0);
+scene.add(spotLight);
+
+// ==================== 卡牌（双面：正面 + 铭牌背面） ====================
+function makeCardMesh(frontTex, backTex, frameColor) {
+  const g = new THREE.Group();
+  const front = new THREE.Mesh(
+    new THREE.PlaneGeometry(CARD_W, CARD_H),
+    new THREE.MeshBasicMaterial({ map: frontTex })
+  );
+  front.position.z = 0.006;
+  g.add(front);
+  const back = new THREE.Mesh(
+    new THREE.PlaneGeometry(CARD_W, CARD_H),
+    new THREE.MeshBasicMaterial({ map: backTex })
+  );
+  back.rotation.y = Math.PI;
+  back.position.z = -0.006;
+  g.add(back);
+  const eg = new THREE.EdgesGeometry(new THREE.PlaneGeometry(CARD_W, CARD_H));
+  const el = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({ color: frameColor, transparent: true, opacity: 0.9 }));
+  el.position.z = 0.012;
+  g.add(el);
+  g.userData.edgeMat = el.material;
+  return g;
+}
+
+const DEMO_CARDS = [
+  { name: '天权',       sub: 'DREADNOUGHT',  atk: '9.9', def: '9.9', hue: 42,  tier: 4 },
+  { name: '泰坦',       sub: 'COLOSSUS',     atk: '9.5', def: '9.5', hue: 180, tier: 3 },
+  { name: '苍穹执政官', sub: 'CELESTIAL',    atk: '9.9', def: '9.2', hue: 40,  tier: 3 },
+  { name: '星怒',       sub: 'BATTLECRUISER',atk: '9.7', def: '9.2', hue: 200, tier: 2 },
+  { name: '风暴破坏者', sub: 'BATTLESHIP',   atk: '9.6', def: '9.4', hue: 190, tier: 2 },
+  { name: '幻影幽魂',   sub: 'PHANTOM',      atk: '9.2', def: '8.8', hue: 205, tier: 2 },
+  { name: '虚空掠夺者', sub: 'DREADNOUGHT',  atk: '9.8', def: '9.0', hue: 215, tier: 1 },
+  { name: '星云突袭者', sub: 'INTERCEPTOR',  atk: '8.9', def: '9.1', hue: 230, tier: 1 },
+  { name: '暗夜之刃',   sub: 'STEALTH',      atk: '9.4', def: '8.5', hue: 275, tier: 1 },
+  { name: '时空扰乱者', sub: 'CHRONO SHIP',  atk: '9.3', def: '8.7', hue: 245, tier: 0 },
+  { name: '极光守卫',   sub: 'AEGIS',        atk: '8.7', def: '9.6', hue: 260, tier: 0 },
+  { name: '银翼',       sub: 'SILVERWING',   atk: '8.8', def: '9.3', hue: 195, tier: -1 },
+  { name: '熔核',       sub: 'COREFORGE',    atk: '9.1', def: '9.0', hue: 250, tier: -1 },
+  { name: '晨曦',       sub: 'DAWNBREAKER',  atk: '8.6', def: '8.9', hue: 30,  tier: -1 },
+  { name: '彗星',       sub: 'COMETTAIL',    atk: '9.0', def: '8.4', hue: 160, tier: -1 },
+];
+
+const allCards = [];
+
+// ==================== 待定区台面（带高亮） ====================
+const POOL_POS = new THREE.Vector3(-16.5, 0, 10);
+const poolPad = new THREE.Group();
+poolPad.position.copy(POOL_POS);
+
+const padBodyMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0a1020, metalness: 0.85, roughness: 0.35,
+  emissive: 0x22d3ee, emissiveIntensity: 0.05,
+  transparent: true, opacity: 0.94
+});
+const padBody = new THREE.Mesh(new THREE.BoxGeometry(11, 0.7, 7), padBodyMat);
+padBody.position.y = 0.35;
+padBody.userData.dropPool = true;
+poolPad.add(padBody);
+dropTargets.push(padBody);
+
+const padEdgeMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.9 });
+const padEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(11, 0.7, 7)), padEdgeMat);
+padEdge.position.y = 0.35;
+poolPad.add(padEdge);
+
+// 待定区高亮光毯
+const poolHlMat = new THREE.MeshBasicMaterial({ map: softGlow, color: 0x22d3ee, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+const poolHl = new THREE.Mesh(new THREE.PlaneGeometry(12.5, 8.5), poolHlMat);
+poolHl.rotation.x = -Math.PI / 2;
+poolHl.position.y = 0.78;
+poolHl.raycast = () => {};
+poolPad.add(poolHl);
+
+(function () {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 160;
+  const x = c.getContext('2d');
+  x.fillStyle = 'rgba(3,8,20,.85)'; x.fillRect(0, 0, 1024, 160);
+  x.strokeStyle = '#22d3ee'; x.lineWidth = 5; x.strokeRect(4, 4, 1016, 152);
+  x.font = '900 72px "Orbitron", "Noto Sans SC", sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = '#7df9ff'; x.shadowColor = '#22d3ee'; x.shadowBlur = 18;
+  x.fillText('待定区 · PENDING', 512, 84);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  const label = new THREE.Mesh(
+    new THREE.PlaneGeometry(6.4, 1.0),
+    new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })
+  );
+  label.position.set(0, 2.2, -3.2);
+  label.raycast = () => {};
+  poolPad.add(label);
+})();
+
+const poolSweep = new THREE.Mesh(
+  new THREE.PlaneGeometry(11, 1.2),
+  new THREE.MeshBasicMaterial({ map: scanBar, color: 0x22d3ee, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false })
+);
+poolSweep.rotation.x = -Math.PI / 2;
+poolSweep.position.y = 0.74;
+poolSweep.raycast = () => {};
+poolPad.add(poolSweep);
+scene.add(poolPad);
+
+// ==================== 迷你补间 ====================
+const tweens = [];
+const easeOutCubic = p => 1 - Math.pow(1 - p, 3);
+function tweenCard(card, to, dur = 0.55, onDone = null) {
+  card.userData.tweening = true;
+  tweens.push({
+    card, t0: performance.now(), dur: dur * 1000, onDone,
+    from: { x: card.position.x, y: card.position.y, z: card.position.z, ry: card.rotation.y, s: card.scale.x },
+    to
+  });
+}
+function stepTweens(now) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i];
+    const p = Math.min((now - tw.t0) / tw.dur, 1);
+    const e = easeOutCubic(p);
+    tw.card.position.set(
+      tw.from.x + (tw.to.x - tw.from.x) * e,
+      tw.from.y + (tw.to.y - tw.from.y) * e,
+      tw.from.z + (tw.to.z - tw.from.z) * e
+    );
+    tw.card.rotation.y = tw.from.ry + (tw.to.ry - tw.from.ry) * e;
+    tw.card.scale.setScalar(tw.from.s + (tw.to.s - tw.from.s) * e);
+    if (p >= 1) {
+      tw.card.userData.tweening = false;
+      tweens.splice(i, 1);
+      if (tw.onDone) tw.onDone();
+    }
+  }
+}
+
+// ==================== 排位布局（全部贴盘沿，单卡也不例外） ====================
+function tierScale(i) { return i === 4 ? 1.12 : 1.0; }
+
+function layoutTier(i, animate = true) {
+  const t = TIERS[i];
+  const list = allCards.filter(c => c.userData.tier === i);
+  const n = list.length;
+  if (!n) return;
+  const surfaceY = t.y + DISC_H / 2;
+  const ringR = t.r - 0.8;    // 贴盘沿站立
+  list.forEach((card, k) => {
+    const s = tierScale(i);
+    const a = (k / n) * Math.PI * 2 + Math.PI / 2;   // 第一张在正前方
+    const x = Math.cos(a) * ringR;
+    const z = Math.sin(a) * ringR;
+    const rotY = Math.PI / 2 - a;
+    const y = surfaceY + (CARD_H * s) / 2;
+    card.userData.stand.baseY = y;
+    card.userData.stand.baseRotY = rotY;
+    const flip = card.userData.flip || 0;
+    if (animate) tweenCard(card, { x, y, z, ry: rotY + flip, s });
+    else { card.position.set(x, y, z); card.rotation.y = rotY + flip; card.scale.setScalar(s); }
+  });
+}
+
+function layoutPool(animate = true) {
+  const list = allCards.filter(c => c.userData.tier === -1);
+  const perRow = 4;
+  list.forEach((card, k) => {
+    const row = Math.floor(k / perRow), col = k % perRow;
+    const inRow = Math.min(list.length - row * perRow, perRow);
+    const x = POOL_POS.x + (col - (inRow - 1) / 2) * 2.6;
+    const z = POOL_POS.z + (row - 0.3) * 2.8;
+    const y = 0.7 + CARD_H / 2;
+    const rotY = 0.35;
+    card.userData.stand.baseY = y;
+    card.userData.stand.baseRotY = rotY;
+    const flip = card.userData.flip || 0;
+    if (animate) tweenCard(card, { x, y, z, ry: rotY + flip, s: 1.0 });
+    else { card.position.set(x, y, z); card.rotation.y = rotY + flip; card.scale.setScalar(1); }
+  });
+}
+
+function relayout(card, animate = true) {
+  if (card.userData.tier >= 0) layoutTier(card.userData.tier, animate);
+  else layoutPool(animate);
+}
+
+// ==================== 卡牌生成（演示 / 文本 / 图片） ====================
+function spawnCard(frontTex, name, tier, extra = {}) {
+  const t = tier >= 0 ? TIERS[tier] : null;
+  const css = t ? t.css : '#7df9ff';
+  const card = makeCardMesh(frontTex, cardBackTexture(name, css), t ? t.color : 0x22d3ee);
+  card.userData.isCard = true;
+  card.userData.tier = tier;
+  card.userData.name = name;
+  card.userData.flip = 0;
+  card.userData.cardType = extra.cardType || 'text';
+  card.userData.src = extra.src || null;
+  card.userData.text = extra.text != null ? extra.text : name;
+  card.userData.stand = { baseY: 0, baseRotY: 0, phase: Math.random() * Math.PI * 2 };
+  card.position.set(POOL_POS.x, 6, POOL_POS.z + 10);
+  scene.add(card);
+  allCards.push(card);
+  relayout(card, extra.animate !== false);
+  updateStats();
+  return card;
+}
+
+function spawnDemoFleet() {
+  DEMO_CARDS.forEach(cd => {
+    const t = cd.tier >= 0 ? TIERS[cd.tier] : null;
+    const css = t ? t.css : '#7df9ff';
+    spawnCard(cardTexture(cd.name, cd.sub, cd.atk, cd.def, css, cd.hue), cd.name, cd.tier,
+      { cardType: 'text', text: cd.name, animate: false });
+  });
+}
+
+function addTextCard(text, tier = -1, animate = true, save = true) {
+  const name = (text || '').trim();
+  if (!name) return null;
+  const hue = (Math.random() * 360) | 0;
+  const t = tier >= 0 ? TIERS[tier] : null;
+  const card = spawnCard(textCardTexture(name, t ? t.css : '#7df9ff', hue), name, tier,
+    { cardType: 'text', text: name, animate });
+  if (save) snapshotDraft();
+  return card;
+}
+
+function addImageCard(src, name, tier = -1, animate = true, save = true) {
+  const img = new Image();
+  img.onload = () => {
+    const t = tier >= 0 ? TIERS[tier] : null;
+    const card = spawnCard(imageCardTexture(img, name || 'IMAGE', t ? t.css : '#7df9ff'), name || 'IMAGE', tier,
+      { cardType: 'image', src, text: null, animate });
+    if (save) { snapshotDraft(); toast('卡牌已铸入 // CARD.FORGED'); }
+  };
+  img.onerror = () => { toast('图片读取失败 // IMG.ERROR'); };
+  img.src = src;
+}
+
+function removeCard(card) {
+  const i = allCards.indexOf(card);
+  if (i >= 0) allCards.splice(i, 1);
+  scene.remove(card);
+  updateStats();
+}
+
+function clearAllCards() {
+  [...allCards].forEach(removeCard);
+}
+
+// ==================== 数据互通：草稿（与 3D/2D 版共享 hangdaola2_state） ====================
+const DRAFT_KEY = 'hangdaola2_state';
+const titleEl = document.getElementById('rankTitle');
+// 主程序段位索引 0=夯(顶) → 4=拉(底)；本页 TIERS 0=拉(底) → 4=夯(顶)
+const holoToMain = h => 4 - h;
+const mainToHolo = m => 4 - m;
+
+let saveTimer = null;
+function snapshotDraft() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      const tierNames = [4, 3, 2, 1, 0].map(i => TIERS[i].name);   // 顶→底
+      const cardsData = allCards.map(c => ({
+        type: c.userData.cardType,
+        text: c.userData.text || null,
+        src: c.userData.src || null,
+        name: c.userData.name || null,
+        tier: c.userData.tier >= 0 ? holoToMain(c.userData.tier) : -1
+      }));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ title: titleEl.innerText, tiers: tierNames, cards: cardsData }));
+    } catch (e) {}
+  }, 120);
+}
+
+// 卡牌段位字段三端兼容：草稿/2D 存档用 tier，3D 版存档用 platformIndex（99=待定区）
+function mainTierOf(cd) {
+  if (typeof cd.tier === 'number') return cd.tier;
+  if (typeof cd.platformIndex === 'number') return cd.platformIndex;
+  return -1;
+}
+
+function hydrateFromData(title, tierNames, cardsList) {
+  clearAllCards();
+  if (title) titleEl.innerText = title;
+  if (Array.isArray(tierNames)) {
+    tierNames.forEach((nm, i) => { const hi = mainToHolo(i); if (TIERS[hi] && nm) setTierName(hi, nm); });
+  }
+  cardsList.forEach(cd => {
+    const main = mainTierOf(cd);
+    const holoTier = (main >= 0 && main <= 4) ? mainToHolo(main) : -1;
+    if (cd.type === 'image' && cd.src) addImageCard(cd.src, cd.name || cd.text || 'IMAGE', holoTier, false, false);
+    else if (cd.type === 'text' && cd.text) addTextCard(cd.text, holoTier, false, false);
+    else if (cd.name) addTextCard(cd.name, holoTier, false, false);
+  });
+}
+
+function hydrateDraft() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) {}
+  if (!d || !Array.isArray(d.cards)) { spawnDemoFleet(); return; }
+  hydrateFromData(d.title, d.tiers, d.cards);
+}
+
+// ==================== 存档 / 读档（共享 hangdaola_archives） ====================
+const ARCHIVE_KEY = 'hangdaola_archives';
+const archiveListEl = document.getElementById('archive-list');
+
+function readArchives() {
+  try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function saveArchive() {
+  const tierNames = [4, 3, 2, 1, 0].map(i => TIERS[i].name);
+  const archive = {
+    id: Date.now(),
+    title: titleEl.innerText,
+    labels: tierNames,          // 3D 版读 labels
+    tiers: tierNames,           // 2D 版读 tiers
+    cards: allCards.map(c => {
+      const main = c.userData.tier >= 0 ? holoToMain(c.userData.tier) : -1;
+      return {
+        type: c.userData.cardType,
+        src: c.userData.src || null,
+        text: c.userData.text || null,
+        name: c.userData.name || null,
+        tier: main,                          // 2D 版读 tier
+        platformIndex: main >= 0 ? main : 99, // 3D 版读 platformIndex
+        slotIndex: 0,
+        isFlipped: false
+      };
+    }),
+    date: new Date().toLocaleString()
+  };
+  const existing = readArchives();
+  existing.unshift(archive);
+  try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(existing)); } catch (e) {}
+  renderArchivesList();
+  toast('数据已存档 // ARCHIVE.SAVED');
+}
+
+function renderArchivesList() {
+  const existing = readArchives();
+  if (!existing.length) {
+    archiveListEl.innerHTML = '<div class="empty-archive">暂无存档记录</div>';
+    return;
+  }
+  archiveListEl.innerHTML = existing.map(item => `
+    <div class="archive-item">
+      <div class="archive-info">
+        <span class="archive-title">${item.title}</span>
+        <span class="archive-date">${item.date}</span>
+      </div>
+      <button class="archive-btn load-archive-btn" data-id="${item.id}" title="加载存档">▸</button>
+      <button class="archive-btn del del-archive-btn" data-id="${item.id}" title="删除存档">✕</button>
+    </div>
+  `).join('');
+  archiveListEl.querySelectorAll('.load-archive-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = parseInt(e.currentTarget.getAttribute('data-id'));
+      const item = readArchives().find(a => a.id === id);
+      if (!item) return;
+      hydrateFromData(item.title, item.labels || item.tiers, item.cards);
+      snapshotDraft();
+      toast('存档已加载 // ARCHIVE.LOADED');
+    });
+  });
+  archiveListEl.querySelectorAll('.del-archive-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = parseInt(e.currentTarget.getAttribute('data-id'));
+      try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(readArchives().filter(a => a.id !== id))); } catch (err) {}
+      renderArchivesList();
+    });
+  });
+}
+
+// ==================== 拖拽排位（射线落点 + 高亮提示） ====================
+const raycaster = new THREE.Raycaster();
+const mouseNDC = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const dragHit = new THREE.Vector3();
+const dragOffset = new THREE.Vector3();
+let dragCard = null;
+let hoverCard = null;
+let currentDrop = null;   // 0-4 某层 / -1 待定区 / null 无效
+let deleteHot = false;
+
+const deleteZone = document.getElementById('delete-zone');
+
+function setMouse(e) {
+  mouseNDC.x = (e.clientX / innerWidth) * 2 - 1;
+  mouseNDC.y = -(e.clientY / innerHeight) * 2 + 1;
+}
+function cardOf(obj) {
+  let o = obj;
+  while (o) { if (o.userData && o.userData.isCard) return o; o = o.parent; }
+  return null;
+}
+function setDropHighlights() {
+  tierFx.forEach((fx, i) => { fx.hot = (currentDrop === i) ? 1 : 0; });
+  poolHlTarget = (currentDrop === -1) ? 1 : 0;
+}
+let poolHlTarget = 0;
+
+function updateDropTarget() {
+  // 指针射线直接打盘子/待定区台面：指哪放哪，所见即所得
+  const hit = raycaster.intersectObjects(dropTargets, false)[0];
+  if (!hit) { currentDrop = null; }
+  else if (hit.object.userData.dropPool) { currentDrop = -1; }
+  else { currentDrop = hit.object.userData.dropTier; }
+  setDropHighlights();
+}
+
+function updateDeleteHot(e) {
+  const r = deleteZone.getBoundingClientRect();
+  deleteHot = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  deleteZone.classList.toggle('hot', deleteHot);
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  setMouse(e);
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hit = raycaster.intersectObjects(allCards, true)[0];
+  const card = hit && cardOf(hit.object);
+  if (!card) return;
+  dragCard = card;
+  card.userData.dragging = true;
+  controls.enabled = false;
+  controls.autoRotate = false;
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+  dragPlane.setFromNormalAndCoplanarPoint(camDir.negate(), card.position);
+  raycaster.ray.intersectPlane(dragPlane, dragHit);
+  dragOffset.copy(dragHit).sub(card.position);
+  card.scale.setScalar(card.scale.x * 1.08);
+  deleteZone.classList.add('visible');
+  renderer.domElement.style.cursor = 'grabbing';
+});
+
+window.addEventListener('pointermove', e => {
+  setMouse(e);
+  raycaster.setFromCamera(mouseNDC, camera);
+  if (dragCard) {
+    if (raycaster.ray.intersectPlane(dragPlane, dragHit)) {
+      dragCard.position.copy(dragHit).sub(dragOffset);
+    }
+    updateDropTarget();       // 实时检测：指到哪个盘，哪个盘发光
+    updateDeleteHot(e);
+    return;
+  }
+  const hit = raycaster.intersectObjects(allCards, true)[0];
+  const card = hit && cardOf(hit.object);
+  if (card !== hoverCard) {
+    if (hoverCard) hoverCard.userData.edgeMat.color.setHex(hoverCard.userData.edgeBase);
+    hoverCard = card || null;
+    if (hoverCard) {
+      hoverCard.userData.edgeBase = hoverCard.userData.edgeMat.color.getHex();
+      hoverCard.userData.edgeMat.color.setHex(0xffffff);
+    }
+    renderer.domElement.style.cursor = card ? 'grab' : 'default';
+  }
+});
+
+window.addEventListener('pointerup', () => {
+  if (!dragCard) return;
+  const card = dragCard;
+  dragCard = null;
+  card.userData.dragging = false;
+  controls.enabled = true;
+  controls.autoRotate = true;
+  renderer.domElement.style.cursor = 'default';
+  deleteZone.classList.remove('visible', 'hot');
+
+  const oldTier = card.userData.tier;
+
+  // 拖进粉碎回收区 = 删除
+  if (deleteHot) {
+    deleteHot = false;
+    currentDrop = null;
+    setDropHighlights();
+    tweenCard(card, { x: card.position.x, y: card.position.y - 1.5, z: card.position.z, ry: card.rotation.y + 2.5, s: 0.01 }, 0.32,
+      () => {
+        removeCard(card);
+        relayout({ userData: { tier: oldTier } });
+        snapshotDraft();
+        toast('卡牌已粉碎 // CARD.SHREDDED');
+      });
+    return;
+  }
+
+  if (currentDrop !== null && currentDrop !== oldTier) {
+    card.userData.tier = currentDrop;
+    snapshotDraft();
+  }
+  currentDrop = null;
+  setDropHighlights();
+
+  if (oldTier >= 0) layoutTier(oldTier); else layoutPool();
+  const newTier = card.userData.tier;
+  if (newTier !== oldTier) {
+    if (newTier >= 0) layoutTier(newTier); else layoutPool();
+  }
+});
+
+// 双击翻转铭牌背面
+renderer.domElement.addEventListener('dblclick', e => {
+  setMouse(e);
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hit = raycaster.intersectObjects(allCards, true)[0];
+  const card = hit && cardOf(hit.object);
+  if (!card || card.userData.tweening) return;
+  const targetFlip = (card.userData.flip || 0) + Math.PI;
+  tweenCard(card, {
+    x: card.position.x, y: card.position.y, z: card.position.z,
+    ry: card.rotation.y + Math.PI, s: card.scale.x
+  }, 0.45, () => { card.userData.flip = targetFlip; });
+});
+
+// ==================== 地面 + 粒子 ====================
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(38, 72),
+  new THREE.MeshStandardMaterial({ color: 0x040910, metalness: 0.9, roughness: 0.35 })
+);
+floor.rotation.x = -Math.PI / 2; floor.position.y = -0.02;
+scene.add(floor);
+
+[[10.2, 0x22d3ee, 0.5], [13.5, 0xff7a1a, 0.38], [17.0, 0xff7a1a, 0.26], [21.5, 0x22d3ee, 0.16]].forEach(([r, col, op]) => {
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(r, 0.05, 8, 128),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  ring.rotation.x = Math.PI / 2; ring.position.y = 0.02;
+  scene.add(ring);
+});
+const baseGlow = new THREE.Mesh(
+  new THREE.PlaneGeometry(30, 30),
+  new THREE.MeshBasicMaterial({ map: softGlow, color: 0x1490c0, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false })
+);
+baseGlow.rotation.x = -Math.PI / 2; baseGlow.position.y = 0.03;
+scene.add(baseGlow);
+
+function makePoints(count, size, palette, area) {
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  const spd = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * area.x * 2;
+    pos[i * 3 + 1] = Math.random() * area.y;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * area.z * 2;
+    const c = new THREE.Color(palette[(Math.random() * palette.length) | 0]);
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    spd[i] = 0.006 + Math.random() * 0.018;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    size, map: softGlow, vertexColors: true, transparent: true, opacity: 0.75,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  pts.userData.speeds = spd;
+  return pts;
+}
+const confetti = makePoints(380, 0.3, [0x22d3ee, 0x3b82f6, 0x8b5cf6, 0xd946ef, 0xffc94d], { x: 18, y: 28, z: 18 });
+scene.add(confetti);
+const stardust = makePoints(500, 0.16, [0x9fd8ff, 0xffffff, 0x6fb7ff], { x: 50, y: 38, z: 50 });
+stardust.material.opacity = 0.5;
+scene.add(stardust);
+
+// ==================== 菜单 / 统计 / Toast ====================
+const menuToggle = document.getElementById('menu-toggle');
+const menuPanel = document.getElementById('menu-panel');
+const uploadInput = document.getElementById('upload-input');
+const textInput = document.getElementById('text-card-input');
+const toastEl = document.getElementById('holo-toast');
+let toastTimer = null;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+function updateStats() {
+  document.getElementById('stat-units').textContent = allCards.length;
+  document.getElementById('stat-ranked').textContent = allCards.filter(c => c.userData.tier >= 0).length;
+}
+
+menuToggle.addEventListener('click', e => {
+  e.stopPropagation();
+  menuPanel.classList.toggle('open');
+  if (menuPanel.classList.contains('open')) renderArchivesList();
+});
+document.addEventListener('pointerdown', e => {
+  if (!menuPanel.contains(e.target) && e.target !== menuToggle) menuPanel.classList.remove('open');
+});
+
+document.getElementById('upload-btn').addEventListener('click', () => uploadInput.click());
+uploadInput.addEventListener('change', function () {
+  const files = Array.from(this.files || []);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => addImageCard(ev.target.result, (f.name || 'IMAGE').replace(/\.[^.]+$/, ''));
+    reader.readAsDataURL(f);
+  });
+  this.value = '';
+  menuPanel.classList.remove('open');
+});
+
+document.getElementById('add-text-btn').addEventListener('click', () => {
+  if (addTextCard(textInput.value)) { toast('卡牌已铸入 // CARD.FORGED'); }
+  textInput.value = '';
+});
+textInput.addEventListener('keypress', e => {
+  if (e.key === 'Enter') {
+    if (addTextCard(textInput.value)) { toast('卡牌已铸入 // CARD.FORGED'); }
+    textInput.value = '';
+  }
+});
+
+document.getElementById('save-btn').addEventListener('click', saveArchive);
+
+document.getElementById('capture-btn').addEventListener('click', () => {
+  menuPanel.classList.remove('open');
+  requestAnimationFrame(() => {
+    composer.render();
+    const link = document.createElement('a');
+    link.download = `全息领奖台_${Date.now()}.png`;
+    link.href = renderer.domElement.toDataURL('image/png');
+    link.click();
+    toast('画面已捕获导出 // CAPTURE.COMPLETE');
+  });
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (confirm('确定要清空全部卡牌吗？')) {
+    clearAllCards();
+    snapshotDraft();
+    toast('面板已清空 // MATRIX.PURGED');
+  }
+  menuPanel.classList.remove('open');
+});
+
+titleEl.addEventListener('input', () => snapshotDraft());
+titleEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } });
+
+// ==================== 启动：有草稿则互通数据，否则展示演示舰队 ====================
+hydrateDraft();
+updateStats();
+renderArchivesList();
+
+// ==================== 动画 ====================
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+  const now = performance.now();
+  controls.update();
+  stepTweens(now);
+
+  sweeps.forEach(s => { s.mesh.rotation.z += s.speed * dt; });
+  marqueeBands.forEach(b => { b.tex.offset.x -= b.speed * dt; });
+  crown.rotation.z += 0.25 * dt;
+  spotCone.rotation.y += 0.18 * dt;
+  upBeam.material.opacity = 0.12 + Math.sin(t * 2.2) * 0.05;
+  poolSweep.position.x = Math.sin(t * 0.5) * 4.5;
+
+  // 落位高亮渐变
+  tierFx.forEach(fx => {
+    const cur = fx.hlMat.opacity;
+    const target = fx.hot ? (0.65 + Math.sin(t * 5) * 0.25) : 0;
+    const nv = cur + (target - cur) * 0.18;
+    fx.hlMat.opacity = nv;
+    fx.filmMat.opacity = 0.09 + nv * 0.35;
+    fx.bodyMat.emissiveIntensity = 0.05 + nv * 0.55;
+  });
+  poolHlMat.opacity += ((poolHlTarget ? (0.3 + Math.sin(t * 5) * 0.1) : 0) - poolHlMat.opacity) * 0.18;
+  padBodyMat.emissiveIntensity = 0.05 + poolHlMat.opacity * 1.4;
+
+  allCards.forEach(c => {
+    if (c.userData.dragging || c.userData.tweening) return;
+    const st = c.userData.stand;
+    c.position.y = st.baseY + Math.sin(t * 1.4 + st.phase) * 0.05;
+    c.rotation.y = st.baseRotY + (c.userData.flip || 0) + Math.sin(t * 0.8 + st.phase) * 0.03;
+  });
+
+  [confetti, stardust].forEach((pts, pi) => {
+    const pos = pts.geometry.attributes.position;
+    const spd = pts.userData.speeds;
+    for (let i = 0; i < pos.count; i++) {
+      let y = pos.getY(i) - spd[i];
+      if (y < 0) y = pi === 0 ? 28 : 38;
+      pos.setY(i, y);
+      pos.setX(i, pos.getX(i) + Math.sin(t * 1.3 + i) * 0.004);
+    }
+    pos.needsUpdate = true;
+  });
+
+  composer.render();
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

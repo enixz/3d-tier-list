@@ -1077,3 +1077,18 @@ body:not(.pre-boot) .interaction-tip {
     animation: none !important;
   }
 }
+
+/* ==================== 全景模式（全息领奖台） ==================== */
+body.pano-mode #labels-container,
+body.pano-mode .interaction-tip,
+body.pano-mode .archive-drawer {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+
+#labels-container,
+.interaction-tip,
+.archive-drawer {
+  transition: opacity 0.45s ease;
+}

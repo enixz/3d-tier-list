@@ -27,6 +27,8 @@ let activeLockBeams = [];
 let scanLineMeshes = [];
 let poolScanMesh = null; // 待判定域 constant radar-sweep strip
 let dragSpinSpeed = 0;
+// 全景模式（全息领奖台）总开关 —— 拖拽/悬停/待机视差都以此为门
+let panoActive = false;
 
 const clock = new THREE.Clock();
 
@@ -2007,7 +2009,7 @@ function onMouseMove(event) {
     }
   }
 
-  if (!isDragging) {
+  if (!isDragging && !panoActive) {
     raycaster.setFromCamera(mouse, camera);
 
     // Check card hover
@@ -2085,6 +2087,7 @@ function onMouseMove(event) {
 }
 
 function onMouseDown(event) {
+  if (panoActive) return;
   if (event.target && event.target.tagName !== 'CANVAS') return;
 
   updateMousePos(event.clientX, event.clientY);
@@ -2254,6 +2257,7 @@ function onMouseUp(event) {
 
 // Double Click to Flip Card
 function onDoubleClick(event) {
+  if (panoActive) return;
   if (event.target && event.target.tagName !== 'CANVAS') return;
 
   updateMousePos(event.clientX, event.clientY);
@@ -2545,7 +2549,7 @@ function animate() {
   controls.update();
 
   // Gentle 3D perspective idle floating + mouse parallax when camera is locked and not dragging
-  if (!controls.enabled && !isDragging) {
+  if (!controls.enabled && !isDragging && !panoActive) {
     mouseParallax.x += (mouse.x - mouseParallax.x) * 0.04;
     mouseParallax.y += (mouse.y - mouseParallax.y) * 0.04;
     if (REDUCED_MOTION) {
@@ -2606,6 +2610,11 @@ function animate() {
   updateBurstParticles(delta);
   updateDragTrails();
 
+  // 3.5 全景模式专属动画（领奖台扫光 / 卡牌环绕 / 全息彩带）
+  if (panoActive) {
+    updatePanoFrame(time, delta);
+  }
+
   // 4. Card animations
   cards.forEach(card => {
     if (card === draggedCard) {
@@ -2622,7 +2631,7 @@ function animate() {
     }
 
     // Floating breathing motion
-    if (card.userData.platform) {
+    if (!panoActive && card.userData.platform) {
       const floatOffset = Math.sin(time * 2.0 + card.userData.baseTime) * 0.025;
 
       if (card.userData.platform.userData.type === 'pool') {
@@ -2672,3 +2681,346 @@ setTimeout(() => {
   if (titleEl) scrambleText(titleEl, titleEl.textContent.trim() || 'TIER_LIST');
 }, 120);
 setInterval(rotateTip, 7000);
+
+// ==================== PANORAMA MODE · 全息领奖台 ====================
+// 一键把平面榜单切换成「圆柱五层霓虹领奖台塔」：
+// 平层平台折叠收起 → 领奖台塔弹性升起 → 已排名卡牌按层级环绕塔身悬浮，
+// 卡池卡牌退到远处深空缓慢公转 → 顶层金色探照灯 + 全息彩带，镜头缓慢环绕。
+const PANO_CFG = {
+  radii:   [3.4, 5.0, 6.6, 8.2, 9.8],   // 夯(顶,最小) → 拉(底,最大)
+  ys:      [5.6, 3.1, 0.6, -1.9, -4.4],
+  discH: 1.5,
+  cardRingGap: 1.5,   // 卡牌环绕半径 = 盘半径 + 此值
+  cardLift: 1.25,     // 卡牌中心距盘面高度
+  gold: 0xffd76a
+};
+
+let panoGroup = null;        // 领奖台塔整体
+let panoSweeps = [];         // 每层旋转扫光条
+let panoConfetti = null;     // 全息彩带粒子
+let panoConfettiSpeeds = null;
+let panoSpotCone = null;
+let panoSpotLight = null;
+let panoSaved = null;        // 进入前的完整现场，用于无损还原
+
+// 环绕盘身的霓虹字带（层级名 · 段位码 重复一圈）
+function createPanoBandTexture(tier) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2048; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const colorHex = '#' + tier.color.toString(16).padStart(6, '0');
+  ctx.clearRect(0, 0, 2048, 128);
+  ctx.font = '900 64px "Orbitron", "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = colorHex;
+  ctx.shadowColor = colorHex;
+  ctx.shadowBlur = 18;
+  const unit = tier.name + ' · ' + tier.rankCode + '  ◆  ';
+  let x = 20;
+  while (x < 2048) { ctx.fillText(unit, x, 64); x += ctx.measureText(unit).width + 40; }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
+}
+
+function buildPanoTower() {
+  panoGroup = new THREE.Group();
+
+  tiers.forEach((tier, i) => {
+    const r = PANO_CFG.radii[i];
+    const y = PANO_CFG.ys[i];
+    const h = PANO_CFG.discH;
+    const disc = new THREE.Group();
+    disc.position.y = y;
+
+    // 盘体 —— 暗色金属 + 层级色微发光
+    const bodyGeo = new THREE.CylinderGeometry(r, r * 1.04, h, 72);
+    const bodyMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a0f1c, metalness: 0.85, roughness: 0.32,
+      emissive: tier.color, emissiveIntensity: 0.06,
+      transparent: true, opacity: 0.94
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    disc.add(body);
+
+    // 盘面全息薄膜
+    const topGeo = new THREE.CircleGeometry(r - 0.12, 72);
+    const topMat = new THREE.MeshBasicMaterial({
+      color: tier.color, transparent: true, opacity: 0.07,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const topFilm = new THREE.Mesh(topGeo, topMat);
+    topFilm.rotation.x = -Math.PI / 2;
+    topFilm.position.y = h / 2 + 0.02;
+    topFilm.raycast = () => {};
+    disc.add(topFilm);
+
+    // 盘沿霓虹环
+    const rimGeo = new THREE.TorusGeometry(r, 0.055, 12, 96);
+    const rimMat = new THREE.MeshBasicMaterial({ color: tier.color });
+    const rim = new THREE.Mesh(rimGeo, rimMat);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = h / 2;
+    rim.raycast = () => {};
+    disc.add(rim);
+
+    // 盘身霓虹字带
+    const bandTex = createPanoBandTexture(tier);
+    const bandGeo = new THREE.CylinderGeometry(r + 0.03, r + 0.03, 0.62, 72, 1, true);
+    const bandMat = new THREE.MeshBasicMaterial({
+      map: bandTex, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    });
+    const band = new THREE.Mesh(bandGeo, bandMat);
+    band.raycast = () => {};
+    disc.add(band);
+
+    // 旋转扫光条（复用扫光贴图）
+    const sweepGeo = new THREE.PlaneGeometry(r * 2, 1.0);
+    const sweepMat = new THREE.MeshBasicMaterial({
+      map: scanLineTex, color: tier.color, transparent: true, opacity: 0.22,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const sweep = new THREE.Mesh(sweepGeo, sweepMat);
+    sweep.rotation.x = -Math.PI / 2;
+    sweep.position.y = h / 2 + 0.06;
+    sweep.raycast = () => {};
+    disc.add(sweep);
+    panoSweeps.push({ mesh: sweep, speed: 0.25 + i * 0.08 });
+
+    panoGroup.add(disc);
+  });
+
+  // 顶层金色探照灯光锥
+  const topY = PANO_CFG.ys[0] + PANO_CFG.discH / 2;
+  const coneGeo = new THREE.ConeGeometry(4.4, 13, 40, 1, true);
+  const coneMat = new THREE.MeshBasicMaterial({
+    color: PANO_CFG.gold, transparent: true, opacity: 0.055,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+  });
+  panoSpotCone = new THREE.Mesh(coneGeo, coneMat);
+  panoSpotCone.position.y = topY + 6.5;
+  panoSpotCone.raycast = () => {};
+  panoGroup.add(panoSpotCone);
+
+  panoSpotLight = new THREE.PointLight(PANO_CFG.gold, 1.6, 34, 2);
+  panoSpotLight.position.set(0, topY + 5.5, 0);
+  panoGroup.add(panoSpotLight);
+
+  // 全息彩带粒子（层级五色 + 金）
+  const count = 320;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  panoConfettiSpeeds = new Float32Array(count);
+  const palette = tiers.map(t => new THREE.Color(t.color)).concat([new THREE.Color(PANO_CFG.gold)]);
+  for (let k = 0; k < count; k++) {
+    const a = Math.random() * Math.PI * 2;
+    const rr = 2 + Math.random() * 14;
+    positions[k * 3] = Math.cos(a) * rr;
+    positions[k * 3 + 1] = -8 + Math.random() * 22;
+    positions[k * 3 + 2] = Math.sin(a) * rr;
+    const c = palette[(Math.random() * palette.length) | 0];
+    colors[k * 3] = c.r; colors[k * 3 + 1] = c.g; colors[k * 3 + 2] = c.b;
+    panoConfettiSpeeds[k] = 0.008 + Math.random() * 0.02;
+  }
+  const confettiGeo = new THREE.BufferGeometry();
+  confettiGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  confettiGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const confettiMat = new THREE.PointsMaterial({
+    size: 0.32, map: softGlowTex, vertexColors: true, transparent: true,
+    opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  panoConfetti = new THREE.Points(confettiGeo, confettiMat);
+  panoConfetti.raycast = () => {};
+  panoGroup.add(panoConfetti);
+
+  panoGroup.visible = false;
+  panoGroup.scale.setScalar(0.001);
+  scene.add(panoGroup);
+}
+
+// 每帧：扫光旋转 / 彩带飘落 / 卡牌环绕悬浮
+function updatePanoFrame(time, delta) {
+  if (!panoGroup) return;
+
+  panoSweeps.forEach(s => { s.mesh.rotation.z += s.speed * delta; });
+
+  if (panoSpotCone) panoSpotCone.rotation.y += 0.15 * delta;
+
+  if (panoConfetti) {
+    const pos = panoConfetti.geometry.attributes.position;
+    for (let k = 0; k < pos.count; k++) {
+      let y = pos.getY(k) - panoConfettiSpeeds[k];
+      if (y < -8) y = 14;
+      pos.setY(k, y);
+      pos.setX(k, pos.getX(k) + Math.sin(time * 1.4 + k) * 0.004);
+    }
+    pos.needsUpdate = true;
+  }
+
+  cards.forEach(card => {
+    const p = card.userData.pano;
+    if (!p || !p.settled) return;
+    if (p.pool) {
+      p.angle += p.orbitSpeed * delta;   // 卡池深空缓慢公转
+    }
+    const wobble = Math.sin(time * 1.5 + p.phase) * 0.12;
+    card.position.set(
+      Math.cos(p.angle) * p.radius,
+      p.baseY + wobble,
+      Math.sin(p.angle) * p.radius
+    );
+    card.rotation.y = Math.PI / 2 - p.angle + Math.sin(time * 0.9 + p.phase) * 0.06;
+  });
+}
+
+function enterPanorama() {
+  if (panoActive) return;
+  panoActive = true;
+  document.body.classList.add('pano-mode');
+
+  // 1) 存档现场：相机 + 每张卡牌的位姿
+  panoSaved = {
+    camPos: camera.position.clone(),
+    camTarget: controls.target.clone(),
+    autoRotate: controls.autoRotate,
+    cards: cards.map(c => ({
+      card: c,
+      pos: c.position.clone(),
+      rot: c.rotation.clone(),
+      scale: c.scale.clone()
+    }))
+  };
+
+  // 2) 平面平台 & 卡池平台折叠收起
+  platforms.forEach(pf => {
+    const host = pf.userData.group || pf;
+    gsap.to(host.scale, {
+      x: 0.001, y: 0.001, z: 0.001, duration: 0.7, ease: 'power3.in',
+      onComplete: () => { host.visible = false; }
+    });
+  });
+
+  // 3) 领奖台塔弹性升起
+  if (!panoGroup) buildPanoTower();
+  panoGroup.visible = true;
+  gsap.to(panoGroup.scale, { x: 1, y: 1, z: 1, duration: 1.4, ease: 'elastic.out(1, 0.65)', delay: 0.35 });
+
+  // 4) 分配每张卡牌的环绕位
+  let delayIdx = 0;
+  tiers.forEach((tier, i) => {
+    const pf = platforms[i];
+    const tierCards = (pf && pf.userData.cards) ? pf.userData.cards.filter(Boolean) : [];
+    const n = tierCards.length;
+    const ringR = PANO_CFG.radii[i] + PANO_CFG.cardRingGap;
+    const baseY = PANO_CFG.ys[i] + PANO_CFG.discH / 2 + PANO_CFG.cardLift;
+    tierCards.forEach((card, k) => {
+      const angle = (k / Math.max(n, 1)) * Math.PI * 2 + i * 0.55;
+      const isChampion = (i === 0 && k === 0);
+      card.userData.pano = {
+        angle, radius: ringR, baseY: baseY + (isChampion ? 0.35 : 0),
+        phase: Math.random() * Math.PI * 2, pool: false, settled: false
+      };
+      gsap.to(card.position, {
+        x: Math.cos(angle) * ringR, y: baseY, z: Math.sin(angle) * ringR,
+        duration: 1.25, delay: 0.5 + delayIdx * 0.04, ease: 'power3.inOut',
+        onComplete: () => { card.userData.pano.settled = true; }
+      });
+      gsap.to(card.rotation, {
+        y: Math.PI / 2 - angle, duration: 1.25, delay: 0.5 + delayIdx * 0.04, ease: 'power3.inOut'
+      });
+      if (isChampion) {
+        gsap.to(card.scale, { x: 1.22, y: 1.22, z: 1.22, duration: 1.0, delay: 1.4, ease: 'back.out(2)' });
+      }
+      delayIdx++;
+    });
+  });
+
+  // 5) 卡池卡牌退入深空缓慢公转
+  const pool = platforms.find(pf => pf.userData.type === 'pool');
+  if (pool && pool.userData.cards) {
+    pool.userData.cards.filter(Boolean).forEach(card => {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 13.5 + Math.random() * 4.5;
+      const baseY = -5 + Math.random() * 10;
+      card.userData.pano = {
+        angle, radius, baseY, phase: Math.random() * Math.PI * 2,
+        pool: true, orbitSpeed: 0.04 + Math.random() * 0.05, settled: false
+      };
+      gsap.to(card.position, {
+        x: Math.cos(angle) * radius, y: baseY, z: Math.sin(angle) * radius,
+        duration: 1.5, delay: 0.4, ease: 'power3.inOut',
+        onComplete: () => { card.userData.pano.settled = true; }
+      });
+      gsap.to(card.rotation, {
+        y: Math.PI / 2 - angle, duration: 1.5, delay: 0.4, ease: 'power3.inOut'
+      });
+    });
+  }
+
+  // 6) 镜头：切到环绕机位，缓慢自动旋转
+  controls.autoRotate = !REDUCED_MOTION;
+  controls.autoRotateSpeed = 0.7;
+  gsap.to(controls.target, { x: 0, y: 0.8, z: 0, duration: 1.2, ease: 'power2.inOut' });
+  gsap.to(camera.position, { x: 0, y: 4.5, z: 33, duration: 1.2, ease: 'power2.inOut' });
+
+  showHudToast('PANORAMA.MODE // 全息领奖台已升起');
+}
+
+function exitPanorama() {
+  if (!panoActive) return;
+  panoActive = false;
+  document.body.classList.remove('pano-mode');
+
+  // 1) 镜头还原
+  controls.autoRotate = panoSaved ? panoSaved.autoRotate : false;
+  if (panoSaved) {
+    gsap.to(controls.target, { x: panoSaved.camTarget.x, y: panoSaved.camTarget.y, z: panoSaved.camTarget.z, duration: 1.0, ease: 'power2.inOut' });
+    gsap.to(camera.position, { x: panoSaved.camPos.x, y: panoSaved.camPos.y, z: panoSaved.camPos.z, duration: 1.0, ease: 'power2.inOut' });
+  }
+
+  // 2) 领奖台塔收回
+  if (panoGroup) {
+    gsap.to(panoGroup.scale, {
+      x: 0.001, y: 0.001, z: 0.001, duration: 0.6, ease: 'power3.in',
+      onComplete: () => { panoGroup.visible = false; }
+    });
+  }
+
+  // 3) 平面平台复位
+  platforms.forEach(pf => {
+    const host = pf.userData.group || pf;
+    host.visible = true;
+    gsap.to(host.scale, { x: 1, y: 1, z: 1, duration: 0.9, delay: 0.3, ease: 'elastic.out(1, 0.7)' });
+  });
+
+  // 4) 卡牌无损归位
+  if (panoSaved) {
+    panoSaved.cards.forEach((s, idx) => {
+      gsap.killTweensOf(s.card.position);
+      gsap.killTweensOf(s.card.rotation);
+      gsap.killTweensOf(s.card.scale);
+      gsap.to(s.card.position, { x: s.pos.x, y: s.pos.y, z: s.pos.z, duration: 1.1, delay: 0.15 + idx * 0.02, ease: 'power3.inOut' });
+      gsap.to(s.card.rotation, { x: s.rot.x, y: s.rot.y, z: s.rot.z, duration: 1.1, delay: 0.15 + idx * 0.02, ease: 'power3.inOut' });
+      gsap.to(s.card.scale, { x: s.scale.x, y: s.scale.y, z: s.scale.z, duration: 0.8, delay: 0.15 + idx * 0.02, ease: 'power2.inOut' });
+      s.card.userData.pano = null;
+    });
+  }
+  panoSaved = null;
+  showHudToast('PANORAMA.EXIT // 返回重装矩阵');
+}
+
+const panoBtn = document.getElementById('pano-btn');
+if (panoBtn) {
+  panoBtn.addEventListener('click', () => {
+    if (panoActive) {
+      exitPanorama();
+      panoBtn.innerHTML = '<i class="fas fa-panorama"></i> 全景: OFF';
+    } else {
+      enterPanorama();
+      panoBtn.innerHTML = '<i class="fas fa-panorama"></i> 全景: ON';
+    }
+  });
+}
