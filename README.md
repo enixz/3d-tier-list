@@ -9,25 +9,34 @@
 [![Three.js](https://img.shields.io/badge/Three.js-0.160-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![GSAP](https://img.shields.io/badge/GSAP-3.12-88CE02?logo=greensock&logoColor=white)](https://gsap.com/)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![下载便携版](https://img.shields.io/badge/下载-便携版_v1.0.0-brightgreen?logo=github)](https://github.com/enixz/3d-tier-list/releases/latest)
+[![下载便携版](https://img.shields.io/badge/下载-便携版_v1.1.0-brightgreen?logo=github)](https://github.com/enixz/3d-tier-list/releases/latest)
 
 </div>
+
+## 🏆 全息领奖台 · HOLO TIER TOWER
+
+**排行榜的终极形态 —— 五层圆柱霓虹塔。** 卡牌沿盘沿悬浮站立,LED 点阵跑马灯环绕段位,塔顶王冠金光直射,拖到哪个盘、哪个盘发光。
+
+![全息领奖台](docs/shot-holo.jpg)
+
+导入图片、注入文本、双击翻转铭牌、粉碎回收、存档读档、一键捕获 —— 主程序有的,它全都有;三个版本共享同一份卡牌数据。
 
 ## 📥 免安装,直接用
 
 不想配环境?下载便携版 [**hangdaola-portable.zip**](https://github.com/enixz/3d-tier-list/releases/latest/download/hangdaola-portable.zip)(或去 [Releases](https://github.com/enixz/3d-tier-list/releases/latest) 页面)——
 解压后双击 HTML 文件,浏览器打开即玩,无需 Node、无需服务器:
 
+- `夯到拉-全息领奖台.html` — 全息领奖台(单文件,Three.js 走 CDN)
 - `夯到拉-3D.html` — 3D 版(单文件,全部资源内嵌)
 - `夯到拉-2D.html` — 2D 版(单文件,零依赖)
 
-> 两版卡牌数据互通,存档保存在浏览器本地。
+> 三版卡牌数据互通,存档保存在浏览器本地。
 
 ---
 
 ## 📸 实拍画面
 
-一套数据,四种界面 —— 3D / 2D 各两套皮肤,卡牌库存实时共享:
+一套数据,五种界面 —— 全息领奖台 + 3D / 2D 各两套皮肤,卡牌库存实时共享:
 
 | 3D · 重装机械 MECH | 3D · 全息赛博 CYBER |
 | :---: | :---: |
@@ -47,7 +56,7 @@ GitHub 上 2D 的 Tier List 一抓一大把,3D 的 —— 一个没有。
 - 🃏 **卡牌即数据** — 上传图片或输入文本,瞬间铸成悬浮金属卡牌;双击翻转到铭牌背面
 - 🖐️ **全 3D 拖拽** — 在三维空间里抓起卡牌,拖过平台时火花拖尾随行,松手即液压锁止归位
 - 🏷️ **层级自定义** — 「夯 / 顶级 / 人上人 / NPC / 拉」五层默认段位,标签随意改名,层级平台扫光待命
-- 🎨 **四套界面** — 3D 版双皮肤(重装机械 ⇄ 全息赛博)+ 2D 版双皮肤(纸墨榜单 ⇄ 白色未来),一键切换,卡牌数据实时共享
+- 🎨 **五种界面** — 全息领奖台 + 3D 版双皮肤(重装机械 ⇄ 全息赛博)+ 2D 版双皮肤(纸墨榜单 ⇄ 白色未来),一键切换,卡牌数据实时共享
 - 💾 **本地数据库** — 进度随时存档 / 读档,关掉浏览器也不丢
 - 📷 **一键捕获** — 截取当前 3D 画面导出图片,直接发群晒榜
 
@@ -86,6 +95,7 @@ npm run preview  # 本地预览构建产物
 
 ```
 ├── index.html        # 3D 版入口
+├── holo-tower.html   # 全息领奖台(单文件,Three.js 走 CDN)
 ├── 夯到拉-2D.html     # 2D 版(单文件,零依赖)
 ├── main.js           # Three.js 场景 + 全部交互逻辑
 ├── style.css         # 重装机械皮肤
