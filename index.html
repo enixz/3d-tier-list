@@ -12,11 +12,19 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link id="theme-css" rel="stylesheet" href="./style.css">
-    <!-- Skin boot: swap stylesheet before first paint if the cyber skin was picked -->
+    <!-- Skin boot: apply the cyber skin before first paint if it was picked.
+         Portable single-file builds inline both themes as style tags
+         (ids: mech-css / cyber-css) toggled via disabled; dev builds swap the link href. -->
     <script>
       (function () {
         try {
-          if (localStorage.getItem('hangdaola_skin') === 'cyber') {
+          var cyber = localStorage.getItem('hangdaola_skin') === 'cyber';
+          var mechEl = document.getElementById('mech-css');
+          var cyberEl = document.getElementById('cyber-css');
+          if (mechEl && cyberEl) {
+            mechEl.disabled = cyber;
+            cyberEl.disabled = !cyber;
+          } else if (cyber) {
             document.getElementById('theme-css').href = './cyber.css';
           }
         } catch (e) {}

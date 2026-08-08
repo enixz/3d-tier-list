@@ -196,8 +196,11 @@ input{font-family:inherit}
 .glyph .rank-num{font-family:var(--f-mono); font-size:10px; letter-spacing:.24em; color:var(--ink-2); margin-top:10px; text-transform:uppercase}
 .glyph .seal{width:34px; height:1px; background:var(--tc); margin-top:8px; opacity:.7}
 
-/* slots */
-.slots{display:flex; flex-wrap:wrap; gap:10px; padding:14px 16px; align-content:flex-start; min-height:104px}
+/* slots — fixed lane height, cards scroll horizontally inside instead of inflating the row */
+.slots{display:flex; flex-wrap:nowrap; gap:10px; padding:14px 16px; align-items:center; height:146px; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+.slots::-webkit-scrollbar{height:6px}
+.slots::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px}
+.slots::-webkit-scrollbar-track{background:transparent}
 .slot-hint{
   display:flex; align-items:center; justify-content:center; width:100%;
   color:var(--ink-2); opacity:.45; font-family:var(--f-mono); font-size:12px; letter-spacing:.12em;
@@ -206,7 +209,7 @@ input{font-family:inherit}
 
 /* ---- card ---- */
 .card{
-  position:relative; width:118px; height:118px; border-radius:var(--r-md);
+  position:relative; width:118px; height:118px; flex:none; border-radius:var(--r-md);
   border:1.5px solid var(--ink); background:var(--paper-hi); overflow:hidden;
   box-shadow:2px 2px 0 var(--btn-shadow); cursor:grab; user-select:none;
   transition:transform .18s var(--ease), box-shadow .18s var(--ease), opacity .2s;

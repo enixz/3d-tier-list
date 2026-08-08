@@ -15,7 +15,7 @@
 
 ## 📥 免安装,直接用
 
-不想配环境?下载便携版 [**hangdaola-v1.0.0.zip**](https://github.com/enixz/3d-tier-list/releases/latest/download/hangdaola-v1.0.0.zip)(或去 [Releases](https://github.com/enixz/3d-tier-list/releases/latest) 页面)——
+不想配环境?下载便携版 [**hangdaola-portable.zip**](https://github.com/enixz/3d-tier-list/releases/latest/download/hangdaola-portable.zip)(或去 [Releases](https://github.com/enixz/3d-tier-list/releases/latest) 页面)——
 解压后双击 HTML 文件,浏览器打开即玩,无需 Node、无需服务器:
 
 - `夯到拉-3D.html` — 3D 版(单文件,全部资源内嵌)
