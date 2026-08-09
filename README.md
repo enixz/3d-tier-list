@@ -9,7 +9,8 @@
 [![Three.js](https://img.shields.io/badge/Three.js-0.160-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![GSAP](https://img.shields.io/badge/GSAP-3.12-88CE02?logo=greensock&logoColor=white)](https://gsap.com/)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![下载便携版](https://img.shields.io/badge/下载-便携版_v1.1.0-brightgreen?logo=github)](https://github.com/enixz/3d-tier-list/releases/latest)
+[![在线体验](https://img.shields.io/badge/在线体验-GitHub_Pages-22d3ee?logo=githubpages&logoColor=white)](https://enixz.github.io/3d-tier-list/)
+[![下载便携版](https://img.shields.io/badge/下载-便携版_v1.1.2-brightgreen?logo=github)](https://github.com/enixz/3d-tier-list/releases/latest)
 
 </div>
 
@@ -23,7 +24,9 @@
 
 ## 📥 免安装,直接用
 
-不想配环境?下载便携版 [**hangdaola-portable.zip**](https://github.com/enixz/3d-tier-list/releases/latest/download/hangdaola-portable.zip)(或去 [Releases](https://github.com/enixz/3d-tier-list/releases/latest) 页面)——
+**在线玩**:[**enixz.github.io/3d-tier-list**](https://enixz.github.io/3d-tier-list/) —— 三个版本全部在线直跑。
+
+不想配环境也不想开网页?下载便携版 [**hangdaola-portable.zip**](https://github.com/enixz/3d-tier-list/releases/latest/download/hangdaola-portable.zip)(或去 [Releases](https://github.com/enixz/3d-tier-list/releases/latest) 页面)——
 解压后双击 HTML 文件,浏览器打开即玩,无需 Node、无需服务器:
 
 - `夯到拉-全息领奖台.html` — 全息领奖台(单文件,Three.js 走 CDN)
