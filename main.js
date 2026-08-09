@@ -111,7 +111,9 @@ function updateHudStats() {
 
 // ==================== DRAFT BRIDGE（与 2D 页共享草稿 hangdaola2_state） ====================
 const DRAFT_KEY = 'hangdaola2_state';
+let __hydrating = false;
 function snapshotDraft() {
+  if (__hydrating) return;
   try {
     const titleEl = document.getElementById('rankTitle');
     const labelSpans = document.querySelectorAll('.tier-label span[contenteditable]');
@@ -129,6 +131,7 @@ function hydrateDraft() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) {}
   if (!d || !Array.isArray(d.cards) || !d.cards.length) return false;
+  __hydrating = true;
   cards.forEach(c => scene.remove(c));
   cards = [];
   platforms.forEach(pf => { if (pf.userData) pf.userData.cards = pf.userData.type === 'tier' ? new Array(slotCount).fill(null) : []; });
@@ -154,6 +157,8 @@ function hydrateDraft() {
       if (free >= 0) target.userData.cards[free] = c;
     });
     arrangeAllPlatforms();
+    __hydrating = false;
+    snapshotDraft();
   }, 350);
   return true;
 }
