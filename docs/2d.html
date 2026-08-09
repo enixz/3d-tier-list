@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="skin-ink">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>夯到拉 · 榜</title>
+<meta name="description" content="从夯到拉，一榜定排名 — 高设计感的 2D 拖拽排行榜">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Archivo:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+/* 皮肤启动：首帧前套用记住的皮肤，避免闪烁 */
+(function(){try{var s=localStorage.getItem('hangdaola2_skin');document.documentElement.className=(s==='tech')?'skin-tech':'skin-ink';}catch(e){document.documentElement.className='skin-ink';}})();
+</script>
+<style>
+/* ============================================================
+   夯到拉 · 2D
+   一套结构，两套皮肤：skin-ink（纸墨榜单，默认） / skin-tech（白色未来）
+   皮肤靠 <html> 的 class 驱动变量与覆盖层，结构不动。
+   ============================================================ */
+
+/* ---------- 皮肤变量 ---------- */
+html.skin-ink{
+  --paper:#EDE6D6; --paper-hi:#F7F1E4;
+  --ink:#1A1A17; --ink-2:#57544B;
+  --line:#D9CFBA; --line-soft:#E4DCCB;
+  --accent:#D2451E; --accent-d:#A93312;
+  --t0:#C0270F; --t1:#D2451E; --t2:#D79A1B; --t3:#6A7A22;
+  --t4:#177E80; --t5:#2E4E8F; --t6:#6E4E8F; --t7:#C05378;
+
+  --f-display:"Fraunces","Noto Serif SC",serif;
+  --f-body:"Archivo","Noto Sans SC",sans-serif;
+  --f-mono:"Space Grotesk","Noto Sans SC",monospace;
+
+  --r-lg:14px; --r-md:10px; --r-sm:7px;
+  --glyph-w:196px; --char-size:64px;
+  --shadow-1:0 1px 0 rgba(26,26,23,.04), 0 10px 28px rgba(26,26,23,.08);
+  --shadow-2:0 2px 0 rgba(26,26,23,.05), 0 22px 60px rgba(26,26,23,.16);
+  --btn-shadow:rgba(26,26,23,.9);
+  --accent-shadow:var(--accent-d);
+  --bg-image:
+    radial-gradient(1200px 700px at 75% -10%, rgba(210,69,30,.06), transparent 55%),
+    radial-gradient(900px 600px at -10% 110%, rgba(23,126,128,.05), transparent 50%);
+  --grain-opacity:.5;
+  --glyph-bg:color-mix(in srgb, var(--tc) 12%, var(--paper-hi));
+  --glyph-char-shadow:2px 2px 0 color-mix(in srgb, var(--tc) 30%, transparent);
+  --label-bg:linear-gradient(transparent, rgba(26,26,23,.72));
+}
+
+/* ---------- 白色未来风（tech） ----------
+   白纸底 × 精密仪器 × 一道暖橙信号光。
+   层级用冷灰→蓝灰→暖橙的单向渐变（由冷到暖，像温度/能量爬升），不撞彩虹。 */
+html.skin-tech{
+  --paper:#F4F5F7; --paper-hi:#FFFFFF;
+  --ink:#14181F; --ink-2:#7A8494;
+  --line:#E2E6EC; --line-soft:#ECEFF3;
+  --accent:#FF5A1F; --accent-d:#E0410C;
+  /* 冷 → 暖 单色能量谱 */
+  --t0:#FF5A1F; --t1:#FF7A3C; --t2:#8E9BB0; --t3:#6B7E9C;
+  --t4:#4E6484; --t5:#3A4E6C; --t6:#2C3E58; --t7:#22304A;
+
+  --f-display:"Chakra Petch","Noto Sans SC",sans-serif;
+  --f-body:"Space Grotesk","Noto Sans SC",sans-serif;
+  --f-mono:"Space Grotesk","Noto Sans SC",monospace;
+
+  --r-lg:16px; --r-md:12px; --r-sm:8px;
+  --glyph-w:168px; --char-size:44px;
+  --shadow-1:0 1px 2px rgba(20,24,31,.04), 0 12px 32px rgba(20,24,31,.07);
+  --shadow-2:0 2px 4px rgba(20,24,31,.05), 0 26px 64px rgba(20,24,31,.14);
+  --btn-shadow:rgba(20,24,31,.14);
+  --accent-shadow:rgba(255,90,31,.35);
+  --bg-image:
+    radial-gradient(1000px 620px at 82% -12%, rgba(255,90,31,.07), transparent 55%),
+    radial-gradient(860px 600px at -12% 112%, rgba(78,100,132,.08), transparent 52%),
+    linear-gradient(rgba(20,24,31,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,24,31,.045) 1px, transparent 1px);
+  --grain-opacity:.14;
+  --glyph-bg:linear-gradient(180deg, color-mix(in srgb, var(--tc) 9%, var(--paper-hi)), color-mix(in srgb, var(--tc) 3%, var(--paper-hi)));
+  --glyph-char-shadow:none;
+  --label-bg:linear-gradient(transparent, rgba(10,14,20,.72));
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:var(--f-body); color:var(--ink);
+  background-color:var(--paper);
+  background-image:var(--bg-image);
+  background-size:auto,auto,34px 34px,34px 34px;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+::selection{background:var(--accent); color:var(--paper-hi)}
+
+/* faint grain */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:var(--grain-opacity);
+  background-image:radial-gradient(rgba(127,127,127,.14) .6px, transparent .6px);
+  background-size:3px 3px; mix-blend-mode:overlay;
+}
+.frame{position:fixed; inset:14px; border:1px solid var(--line); border-radius:18px; pointer-events:none; z-index:40}
+.frame::after{content:""; position:absolute; inset:6px; border:1px solid var(--line-soft); border-radius:12px}
+
+button{font-family:inherit; cursor:pointer}
+input{font-family:inherit}
+[contenteditable]{outline:none}
+
+/* ============ APP GRID ============ */
+.app{position:relative; z-index:1; display:grid; grid-template-rows:auto 1fr auto; height:100vh; padding:0 26px}
+
+/* ============ MASTHEAD ============ */
+.masthead{position:relative; z-index:6; display:flex; align-items:center; gap:22px; padding:22px 6px 16px; border-bottom:2px solid var(--ink)}
+.brand{display:flex; align-items:baseline; gap:14px; min-width:0}
+.brand .hanzi{font-family:var(--f-display); font-weight:900; font-size:44px; line-height:.9; letter-spacing:.02em; color:var(--accent)}
+.brand .word{font-family:var(--f-display); font-weight:600; font-size:20px; letter-spacing:.14em; color:var(--ink)}
+.title-wrap{min-width:0; flex:1 1 0; display:flex; align-items:baseline; gap:14px}
+.board-title{
+  font-family:var(--f-display); font-weight:800; font-size:clamp(22px,3vw,34px);
+  letter-spacing:.01em; line-height:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  border-bottom:2px dashed transparent; transition:border-color .2s; color:var(--ink);
+  min-width:0; flex:0 1 auto; /* allow ellipsis so the title yields space to the toolbar */
+}
+.board-title:hover{border-bottom-color:var(--line)}
+.board-title:focus{border-bottom-color:var(--accent)}
+.tag{font-family:var(--f-mono); font-size:11px; letter-spacing:.18em; color:var(--ink-2); text-transform:uppercase; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto}
+.tag b{color:var(--accent)}
+
+/* Toolbar is content-sized and never shrinks/wraps: the title ellipsizes instead,
+   so the buttons stay on one line and never stack up over the frame. */
+.toolbar{display:flex; align-items:center; gap:10px; flex:0 0 auto; justify-content:flex-end}
+.toolbar .btn{white-space:nowrap}
+.inject{display:flex; align-items:stretch; border:1.5px solid var(--ink); border-radius:var(--r-sm); overflow:hidden; background:var(--paper-hi)}
+.inject input{border:0; background:transparent; padding:9px 12px; font-size:14px; width:170px; color:var(--ink)}
+.inject input::placeholder{color:var(--ink-2); opacity:.7}
+.inject input:focus{outline:none}
+.inject button{border:0; background:var(--ink); color:var(--paper-hi); padding:0 14px; font-weight:700; font-size:14px; letter-spacing:.02em}
+.btn{
+  display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--ink);
+  background:var(--paper-hi); color:var(--ink); font-weight:700; font-size:13px;
+  padding:9px 13px; border-radius:var(--r-sm); letter-spacing:.02em;
+  box-shadow:2px 2px 0 var(--btn-shadow); transition:transform .12s var(--ease), box-shadow .12s var(--ease), background .2s;
+}
+.btn:hover{transform:translate(-1px,-1px); box-shadow:3px 3px 0 var(--btn-shadow)}
+.btn:active{transform:translate(1px,1px); box-shadow:1px 1px 0 var(--btn-shadow)}
+.btn.primary{background:var(--accent); border-color:var(--accent-d); color:var(--paper-hi); box-shadow:2px 2px 0 var(--accent-shadow)}
+.btn.primary:hover{box-shadow:3px 3px 0 var(--accent-shadow)}
+.btn.ghost{box-shadow:none; border-color:var(--line); background:transparent; color:var(--ink-2); font-weight:600}
+.btn.ghost:hover{border-color:var(--ink); color:var(--ink); box-shadow:2px 2px 0 var(--btn-shadow)}
+.btn svg{width:14px; height:14px}
+
+/* skin switcher */
+.skin-switch{position:relative}
+.skin-menu{position:absolute; right:0; top:calc(100% + 8px); min-width:190px; z-index:80;
+  border:1.5px solid var(--ink); border-radius:var(--r-md); background:var(--paper-hi); box-shadow:var(--shadow-2);
+  overflow:hidden; opacity:0; transform:translateY(-6px); pointer-events:none; transition:opacity .18s, transform .2s var(--ease)}
+.skin-switch.open .skin-menu{opacity:1; transform:none; pointer-events:auto}
+.skin-opt{display:flex; align-items:center; gap:10px; width:100%; border:0; background:transparent; padding:11px 13px; text-align:left; font-size:13px; font-weight:600; color:var(--ink)}
+.skin-opt:hover{background:color-mix(in srgb, var(--accent) 10%, var(--paper-hi))}
+.skin-opt .sw{width:14px; height:14px; border-radius:4px; border:1.5px solid var(--ink); flex:none}
+.skin-opt[data-skin="ink"] .sw{background:linear-gradient(135deg,#EDE6D6 55%,#D2451E 55%)}
+.skin-opt[data-skin="tech"] .sw{background:linear-gradient(135deg,#FFFFFF 55%,#FF5A1F 55%)}
+.skin-opt .nm{flex:1}
+.skin-opt .on{font-family:var(--f-mono); font-size:10px; color:var(--accent); letter-spacing:.1em; opacity:0}
+.skin-opt.active .on{opacity:1}
+
+/* ============ MAIN SPLIT ============ */
+.stage{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:26px; min-height:0; padding:22px 0}
+
+/* ---- board (tiers) ---- */
+.board{min-height:0; overflow-y:auto; padding:6px 8px 26px 2px; scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+.board::-webkit-scrollbar{width:8px}
+.board::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px}
+
+.lane{
+  position:relative; display:grid; grid-template-columns:var(--glyph-w) minmax(0,1fr);
+  gap:0; margin-bottom:14px; border:1.5px solid var(--ink); border-radius:var(--r-lg);
+  background:var(--paper-hi); overflow:hidden; box-shadow:var(--shadow-1);
+  transition:box-shadow .25s var(--ease), border-color .25s;
+}
+.lane::before{content:""; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--tc)}
+.lane.hot{border-color:var(--tc); box-shadow:0 0 0 3px color-mix(in srgb, var(--tc) 22%, transparent), var(--shadow-2)}
+
+/* the single glyph token — the signature */
+.glyph{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:22px 4px; background:var(--glyph-bg);
+  border-right:1.5px solid var(--ink); user-select:none;
+}
+.glyph .char{
+  font-family:var(--f-display); font-weight:900; font-size:var(--char-size); line-height:1.06;
+  color:var(--tc); letter-spacing:.02em; white-space:nowrap;
+  text-shadow:var(--glyph-char-shadow);
+}
+.glyph .char[contenteditable]{min-width:1em; text-align:center; border-radius:6px; padding:0 1px}
+.glyph .char:focus{background:var(--paper-hi); box-shadow:inset 0 0 0 2px var(--tc); text-shadow:none}
+.glyph .rank-num{font-family:var(--f-mono); font-size:10px; letter-spacing:.24em; color:var(--ink-2); margin-top:10px; text-transform:uppercase}
+.glyph .seal{width:34px; height:1px; background:var(--tc); margin-top:8px; opacity:.7}
+
+/* slots — fixed lane height, cards scroll horizontally inside instead of inflating the row */
+.slots{display:flex; flex-wrap:nowrap; gap:10px; padding:14px 16px; align-items:center; height:146px; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+.slots::-webkit-scrollbar{height:6px}
+.slots::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px}
+.slots::-webkit-scrollbar-track{background:transparent}
+.slot-hint{
+  display:flex; align-items:center; justify-content:center; width:100%;
+  color:var(--ink-2); opacity:.45; font-family:var(--f-mono); font-size:12px; letter-spacing:.12em;
+  border:1.5px dashed var(--line); border-radius:var(--r-md); padding:18px; pointer-events:none;
+}
+
+/* ---- card ---- */
+.card{
+  position:relative; width:118px; height:118px; flex:none; border-radius:var(--r-md);
+  border:1.5px solid var(--ink); background:var(--paper-hi); overflow:hidden;
+  box-shadow:2px 2px 0 var(--btn-shadow); cursor:grab; user-select:none;
+  transition:transform .18s var(--ease), box-shadow .18s var(--ease), opacity .2s;
+  touch-action:none;
+}
+.card:hover{transform:translateY(-3px) rotate(-.6deg); box-shadow:4px 5px 0 var(--btn-shadow)}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.35; transform:scale(.96)}
+.card img{width:100%; height:100%; object-fit:cover; display:block}
+.card .label{
+  position:absolute; inset:auto 0 0 0; padding:6px 8px; font-size:12px; font-weight:600;
+  background:var(--label-bg); color:var(--paper-hi);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.card.text{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:10px; text-align:center}
+.card.text .big{font-family:var(--f-display); font-weight:800; font-size:20px; line-height:1.1; color:var(--ink); word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.card.text .tick{width:26px; height:3px; background:var(--tc,var(--accent)); border-radius:2px}
+.card .home{position:absolute; top:6px; left:6px; width:8px; height:8px; border-radius:50%; background:var(--tc,var(--accent)); box-shadow:0 0 0 2px var(--paper-hi)}
+
+/* drag ghost follows cursor — scoped to body> so the ".btn.ghost" toolbar
+   variant (3D 版 / 清除 / 打乱 / 整理) never picks up these fixed-position rules */
+body>.ghost{position:fixed; z-index:80; pointer-events:none; width:118px; height:118px; border-radius:var(--r-md);
+  border:1.5px solid var(--ink); background:var(--paper-hi); box-shadow:var(--shadow-2); transform:rotate(-4deg) scale(1.03);
+  display:flex; align-items:center; justify-content:center; overflow:hidden}
+body>.ghost img{width:100%; height:100%; object-fit:cover}
+body>.ghost .big{font-family:var(--f-display); font-weight:800; font-size:20px; padding:10px; text-align:center}
+
+/* ---- rail (reservoir) ---- */
+.rail{display:flex; flex-direction:column; min-height:0; gap:14px}
+.rail-head{display:flex; align-items:baseline; justify-content:space-between; border-bottom:1.5px solid var(--ink); padding-bottom:10px}
+.rail-title{font-family:var(--f-display); font-weight:800; font-size:18px}
+.rail-count{font-family:var(--f-mono); font-size:11px; letter-spacing:.16em; color:var(--ink-2)}
+.pool{
+  flex:1; min-height:0; overflow-y:auto; border:1.5px solid var(--ink); border-radius:var(--r-lg);
+  background:var(--paper-hi); padding:14px; display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start;
+  box-shadow:var(--shadow-1); transition:border-color .2s, box-shadow .2s; scrollbar-width:thin;
+}
+.pool.hot{border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), var(--shadow-1)}
+.pool-empty{width:100%; color:var(--ink-2); opacity:.5; font-size:13px; text-align:center; padding:26px 8px; border:1.5px dashed var(--line); border-radius:var(--r-md); font-family:var(--f-mono); letter-spacing:.06em}
+.rail-actions{display:flex; gap:10px}
+.rail-actions .btn{flex:1; justify-content:center}
+
+/* archive drawer */
+.archive{border:1.5px solid var(--ink); border-radius:var(--r-lg); background:var(--paper-hi); overflow:hidden}
+.archive>button{width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border:0; background:transparent; padding:12px 14px; font-weight:800; font-family:var(--f-display); font-size:14px; color:var(--ink)}
+.archive .chev{transition:transform .25s var(--ease)}
+.archive.open .chev{transform:rotate(180deg)}
+.archive-list{max-height:0; overflow:hidden; transition:max-height .3s var(--ease)}
+.archive.open .archive-list{max-height:240px; overflow-y:auto; border-top:1.5px solid var(--line)}
+.archive-item{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; border-top:1px solid var(--line-soft)}
+.archive-item:first-child{border-top:0}
+.archive-item .t{font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px}
+.archive-item .d{font-family:var(--f-mono); font-size:10px; color:var(--ink-2); letter-spacing:.04em}
+.archive-item .acts{display:flex; gap:6px}
+.mini{border:1px solid var(--line); background:var(--paper-hi); border-radius:6px; width:26px; height:26px; display:grid; place-items:center; color:var(--ink-2)}
+.mini:hover{border-color:var(--ink); color:var(--ink)}
+.mini svg{width:12px; height:12px}
+.empty-archive{padding:16px; text-align:center; color:var(--ink-2); font-size:12px; font-family:var(--f-mono)}
+
+/* ============ FOOTER ============ */
+.foot{display:flex; align-items:center; justify-content:space-between; gap:18px; padding:12px 6px 16px; border-top:1.5px solid var(--ink)}
+.readout{font-family:var(--f-mono); font-size:11px; letter-spacing:.14em; color:var(--ink-2); text-transform:uppercase}
+.readout b{color:var(--ink)}
+.progress{display:flex; gap:6px; align-items:center}
+.progress .seg{width:34px; height:6px; border-radius:3px; background:var(--line); position:relative; overflow:hidden}
+.progress .seg i{position:absolute; inset:0; background:var(--accent); transform:scaleX(0); transform-origin:left; transition:transform .4s var(--ease)}
+.hint{font-size:12px; color:var(--ink-2)}
+.hint kbd{font-family:var(--f-mono); background:var(--paper-hi); border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; font-size:11px}
+
+/* delete zone (fixed) */
+.trash{
+  position:fixed; right:26px; bottom:86px; z-index:70; width:120px; height:120px; border-radius:50%;
+  border:2px dashed var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); color:var(--accent);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  font-family:var(--f-mono); font-size:11px; letter-spacing:.12em; opacity:0; transform:scale(.7) translateY(10px);
+  pointer-events:none; transition:opacity .2s, transform .25s var(--ease), background .2s;
+}
+.trash svg{width:22px; height:22px}
+body.dragging-card .trash{opacity:1; transform:scale(1) translateY(0); pointer-events:auto}
+.trash.hot{background:var(--accent); color:var(--paper-hi); transform:scale(1.08)}
+
+/* toast */
+.toast{position:fixed; left:50%; bottom:34px; transform:translate(-50%,20px); z-index:90;
+  background:var(--ink); color:var(--paper-hi); padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600;
+  box-shadow:var(--shadow-2); opacity:0; pointer-events:none; transition:opacity .25s, transform .3s var(--ease); display:flex; align-items:center; gap:10px}
+.toast.show{opacity:1; transform:translate(-50%,0)}
+.toast .dot{width:8px; height:8px; border-radius:50%; background:var(--accent)}
+
+/* ============================================================
+   TECH（白色未来风）覆盖：只调质感，不动结构
+   ============================================================ */
+html.skin-tech .masthead{border-bottom:1.5px solid var(--ink)}
+html.skin-tech .foot{border-top:1.5px solid var(--ink)}
+html.skin-tech .lane,
+html.skin-tech .pool,
+html.skin-tech .archive{border-color:var(--line); border-width:1px}
+html.skin-tech .card,
+html.skin-tech .inject,
+html.skin-tech .btn{border-color:var(--ink)}
+html.skin-tech .lane{background:var(--paper-hi)}
+html.skin-tech .glyph{border-right:1px solid var(--line)}
+html.skin-tech .glyph .char{font-weight:700; letter-spacing:.04em}
+html.skin-tech .glyph .rank-num{color:var(--ink-2)}
+html.skin-tech .glyph .seal{height:3px; border-radius:2px}
+html.skin-tech .lane::before{width:4px}
+html.skin-tech .lane.hot{box-shadow:0 0 0 3px color-mix(in srgb, var(--tc) 18%, transparent), var(--shadow-2)}
+html.skin-tech .btn{box-shadow:0 1px 0 var(--btn-shadow); border-width:1.5px}
+html.skin-tech .btn:hover{box-shadow:0 2px 0 var(--btn-shadow)}
+html.skin-tech .btn.primary{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent), 0 1px 0 var(--accent-shadow)}
+html.skin-tech .brand .hanzi{letter-spacing:.02em}
+html.skin-tech .board-title{letter-spacing:.02em}
+html.skin-tech .card{box-shadow:0 1px 0 var(--btn-shadow); border-width:1px}
+html.skin-tech .card:hover{box-shadow:0 3px 0 var(--btn-shadow)}
+html.skin-tech .card .home{box-shadow:0 0 0 2px var(--paper-hi)}
+html.skin-tech .card.text .big{font-weight:700}
+html.skin-tech .rail-head{border-bottom-color:var(--ink)}
+html.skin-tech .hint kbd{border-color:var(--line)}
+html.skin-tech .trash{background:color-mix(in srgb, var(--accent) 7%, transparent)}
+html.skin-tech .archive>button{letter-spacing:.02em}
+
+/* entrance */
+@keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+.masthead,.lane,.rail,.foot{animation:rise .5s var(--ease) both}
+.lane{animation-delay:calc(var(--i) * 45ms)}
+.rail{animation-delay:.18s} .foot{animation-delay:.3s}
+:root{--ease:cubic-bezier(.22,.9,.28,1)}
+
+@media (max-width:960px){
+  :root{--glyph-w:110px}
+  .stage{grid-template-columns:1fr}
+  .rail{order:2}
+  .glyph .char{font-size:calc(var(--char-size) * .78)}
+  .toolbar{width:100%; justify-content:flex-start}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important; transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div class="frame" aria-hidden="true"></div>
+
+<div class="app">
+  <!-- ============ MASTHEAD ============ -->
+  <header class="masthead">
+    <div class="brand">
+      <span class="hanzi">夯</span>
+      <span class="word">夯到拉</span>
+    </div>
+    <div class="title-wrap">
+      <h1 id="boardTitle" class="board-title" contenteditable="true" spellcheck="false">本月战力排行</h1>
+      <span class="tag">从夯到拉 · 一榜定排名 // <b>BOARD v2</b></span>
+    </div>
+    <div class="toolbar">
+      <div class="inject">
+        <input id="textInput" type="text" placeholder="输入一个名字 / 标识符…" maxlength="24">
+        <button id="injectBtn" type="button">注入</button>
+      </div>
+      <label class="btn primary" title="上传一张或多张图片">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+        上传图片
+        <input id="fileInput" type="file" accept="image/*" multiple hidden>
+      </label>
+      <a href="./index.html" class="btn ghost" title="切换到 3D 版" style="text-decoration:none;display:inline-flex;align-items:center;">3D 版 →</a>
+      <div class="skin-switch" id="skinSwitch">
+        <button id="skinBtn" class="btn" type="button" title="切换皮肤">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18M3.5 9h17M3.5 15h17"/></svg>
+          皮肤
+        </button>
+        <div class="skin-menu" id="skinMenu">
+          <button class="skin-opt" data-skin="ink" type="button"><span class="sw"></span><span class="nm">纸墨榜单</span><span class="on">●使用中</span></button>
+          <button class="skin-opt" data-skin="tech" type="button"><span class="sw"></span><span class="nm">白色未来</span><span class="on">●使用中</span></button>
+          <a class="skin-opt" href="./index.html" style="text-decoration:none;border-top:1px solid var(--line);"><span class="sw" style="background:linear-gradient(135deg,#171a1f 55%,#ffb42e 55%)"></span><span class="nm">3D 版（机械 / 赛博）</span><span class="on">→</span></a>
+        </div>
+      </div>
+      <button id="saveBtn" class="btn" type="button" title="把当前榜单存入本地">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+        存档
+      </button>
+      <button id="clearBtn" class="btn ghost" type="button" title="清空全部卡片">清除</button>
+    </div>
+  </header>
+
+  <!-- ============ STAGE ============ -->
+  <main class="stage">
+    <section class="board" id="board" aria-label="排行层级"></section>
+
+    <aside class="rail">
+      <div class="rail-head">
+        <span class="rail-title">候选区</span>
+        <span class="rail-count" id="poolCount">POOL · 0</span>
+      </div>
+      <div class="pool" id="pool" aria-label="待判定卡片"></div>
+      <div class="rail-actions">
+        <button class="btn" id="alignBtn" type="button" title="整理候选区">整理</button>
+        <button class="btn ghost" id="shuffleBtn" type="button" title="随机打乱候选区">打乱</button>
+      </div>
+
+      <div class="archive" id="archiveBox">
+        <button id="archiveToggle" type="button">
+          <span>本地存档</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="14" height="14"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="archive-list" id="archiveList">
+          <div class="empty-archive">暂无存档</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="foot">
+    <div class="readout" id="readout">已收录 <b>0</b> · 已上榜 <b>0</b></div>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+    <div class="hint">拖动卡片到左侧层级 · 拖到 <kbd>红色圆环</kbd> 删除 · 双击层级字可改名</div>
+  </footer>
+</div>
+
+<div class="trash" id="trash" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+  <span>松手删除</span>
+</div>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toastText"></span></div>
+
+<script>
+(function(){
+"use strict";
+/* ================= CONFIG ================= */
+const TIER_VAR = i => `var(--t${Math.min(i,7)})`;
+const LS_KEY   = 'hangdaola_archives';
+const LS_SKIN  = 'hangdaola2_skin';
+const LS_DRAFT = 'hangdaola2_state';
+function saveDraft(){ try{ localStorage.setItem(LS_DRAFT, JSON.stringify({ title:document.getElementById('boardTitle').textContent.trim(), tiers:tiers.slice(), cards:cards.map(c=>({type:c.type,text:c.text||null,src:c.src||null,tier:c.tier})) })); }catch(e){} }
+function loadDraft(){ try{ const d=JSON.parse(localStorage.getItem(LS_DRAFT)||'null'); if(!d||!Array.isArray(d.cards))return null; return d; }catch(e){ return null; } }
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const DEFAULT_TIERS = ['夯','顶级','人上人','NPC','拉'];
+
+/* ================= STATE ================= */
+let tiers = DEFAULT_TIERS.slice();
+let cards = [];
+let uid = 0;
+
+/* ================= ELEMENTS ================= */
+const boardEl   = $('#board');
+const poolEl    = $('#pool');
+const trashEl   = $('#trash');
+const toastEl   = $('#toast');
+const toastText = $('#toastText');
+const readout   = $('#readout');
+const progress  = $('#progress');
+const poolCount = $('#poolCount');
+
+/* ================= TOAST ================= */
+let toastTimer;
+function toast(msg){
+  toastText.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 2200);
+}
+
+/* ================= ICONS ================= */
+const ICON_OPEN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 19l4-1L19 8a2 2 0 0 0-3-3L6 15l-1 4z"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>';
+
+/* ================= SKIN ================= */
+function setSkin(name, silent){
+  document.documentElement.className = (name === 'tech') ? 'skin-tech' : 'skin-ink';
+  try{ localStorage.setItem(LS_SKIN, name); }catch(e){}
+  $$('.skin-opt').forEach(o => o.classList.toggle('active', o.dataset.skin === name));
+  if(!silent) toast(name === 'tech' ? '已切换：白色未来' : '已切换：纸墨榜单');
+}
+$('#skinBtn').addEventListener('click', e => { e.stopPropagation(); $('#skinSwitch').classList.toggle('open'); });
+$('#skinMenu').addEventListener('click', e => {
+  const opt = e.target.closest('.skin-opt'); if(!opt) return;
+  setSkin(opt.dataset.skin);
+  $('#skinSwitch').classList.remove('open');
+});
+document.addEventListener('click', e => { if(!e.target.closest('#skinSwitch')) $('#skinSwitch').classList.remove('open'); });
+
+/* ================= RENDER ================= */
+function renderBoard(){
+  boardEl.innerHTML = '';
+  tiers.forEach((name, i) => {
+    const lane = document.createElement('div');
+    lane.className = 'lane';
+    lane.dataset.tier = i;
+    lane.style.setProperty('--tc', TIER_VAR(i));
+    lane.style.setProperty('--i', i);
+
+    const glyph = document.createElement('div');
+    glyph.className = 'glyph';
+    glyph.innerHTML = `
+      <div class="char" contenteditable="true" spellcheck="false" data-tier="${i}" title="点击改名">${escapeHtml(name)}</div>
+      <div class="rank-num">TIER ${String(i+1).padStart(2,'0')}</div>
+      <div class="seal"></div>`;
+
+    const slots = document.createElement('div');
+    slots.className = 'slots';
+    slots.dataset.tier = i;
+
+    lane.appendChild(glyph);
+    lane.appendChild(slots);
+    boardEl.appendChild(lane);
+  });
+  renderCards();
+}
+
+function renderCards(){
+  $$('.slots').forEach(s => s.innerHTML = '');
+  poolEl.innerHTML = '';
+
+  cards.forEach(c => {
+    const el = buildCardEl(c);
+    if (c.tier >= 0 && c.tier < tiers.length){
+      const slot = boardEl.querySelector(`.slots[data-tier="${c.tier}"]`);
+      if (slot) slot.appendChild(el);
+    } else {
+      poolEl.appendChild(el);
+    }
+  });
+
+  $$('.slots').forEach(s => { if(!s.children.length) s.appendChild(hint('把卡片放进来')); });
+  if(!poolEl.children.length){
+    const e = document.createElement('div');
+    e.className = 'pool-empty';
+    e.textContent = '上传图片或注入文字，卡片会落在这里';
+    poolEl.appendChild(e);
+  }
+  syncReadout();
+  saveDraft();
+}
+
+function hint(t){ const d=document.createElement('div'); d.className='slot-hint'; d.textContent=t; return d; }
+
+function buildCardEl(c){
+  const el = document.createElement('div');
+  el.className = 'card' + (c.type==='text' ? ' text' : '');
+  el.dataset.id = c.id;
+  el.style.setProperty('--tc', c.tier>=0 ? TIER_VAR(c.tier) : 'var(--accent)');
+  if (c.type === 'image'){
+    const img = document.createElement('img');
+    img.src = c.src; img.alt = c.text || '';
+    el.appendChild(img);
+    if (c.text){ const l=document.createElement('div'); l.className='label'; l.textContent=c.text; el.appendChild(l); }
+  } else {
+    el.innerHTML = `<div class="tick"></div><div class="big">${escapeHtml(c.text)}</div>`;
+  }
+  const home = document.createElement('span'); home.className='home'; el.appendChild(home);
+  attachDrag(el, c);
+  return el;
+}
+
+function syncReadout(){
+  const ranked = cards.filter(c=>c.tier>=0).length;
+  readout.innerHTML = `已收录 <b>${cards.length}</b> · 已上榜 <b>${ranked}</b>`;
+  poolCount.textContent = `POOL · ${cards.filter(c=>c.tier<0).length}`;
+  progress.innerHTML = '';
+  const total = Math.max(cards.length,1);
+  tiers.forEach((_,i)=>{
+    const n = cards.filter(c=>c.tier===i).length;
+    const seg = document.createElement('div'); seg.className='seg';
+    const bar = document.createElement('i');
+    bar.style.background = `var(--t${Math.min(i,7)})`;
+    bar.style.transform = `scaleX(${cards.length? n/total : 0})`;
+    seg.appendChild(bar); progress.appendChild(seg);
+  });
+}
+
+/* ================= CARD FACTORY ================= */
+function addTextCard(text){
+  text = (text||'').trim();
+  if(!text) return;
+  cards.push({id:++uid, type:'text', text, tier:-1});
+  renderCards();
+  toast(`已注入「${text}」`);
+}
+function addImageCard(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    cards.push({id:++uid, type:'image', src:e.target.result, text:file.name.replace(/\.[^.]+$/,''), tier:-1});
+    renderCards();
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ================= DRAG & DROP ================= */
+let drag = null;
+
+function attachDrag(el, c){
+  el.addEventListener('pointerdown', e => startDrag(e, el, c));
+}
+
+function startDrag(e, el, c){
+  if (e.button !== 0) return;
+  if (e.target.closest('[contenteditable]')) return;
+  e.preventDefault();
+
+  const rect = el.getBoundingClientRect();
+  const ghost = el.cloneNode(true);
+  ghost.classList.add('ghost');
+  ghost.classList.remove('card','text');
+  ghost.style.width = rect.width+'px'; ghost.style.height = rect.height+'px';
+  document.body.appendChild(ghost);
+
+  drag = { card:c, el, ghost,
+           offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
+           overTier:-1, overPool:false, overTrash:false };
+  el.classList.add('dragging');
+  document.body.classList.add('dragging-card');
+  moveGhost(e);
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', endDrag, {once:true});
+}
+
+function moveGhost(e){
+  if(!drag) return;
+  drag.ghost.style.left = (e.clientX - drag.offsetX) + 'px';
+  drag.ghost.style.top  = (e.clientY - drag.offsetY) + 'px';
+}
+
+function onDragMove(e){
+  if(!drag) return;
+  moveGhost(e);
+  drag.ghost.style.display='none';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  drag.ghost.style.display='';
+
+  clearHot();
+  drag.overTier=-1; drag.overPool=false; drag.overTrash=false;
+  if (!under) return;
+  const lane = under.closest('.lane');
+  const pool = under.closest('.pool');
+  const trash = under.closest('.trash');
+  if (trash){ trash.classList.add('hot'); drag.overTrash = true; }
+  else if (lane){ lane.classList.add('hot'); drag.overTier = +lane.dataset.tier; }
+  else if (pool){ pool.classList.add('hot'); drag.overPool = true; }
+}
+
+function clearHot(){
+  $$('.lane.hot').forEach(l=>l.classList.remove('hot'));
+  poolEl.classList.remove('hot');
+  trashEl.classList.remove('hot');
+}
+
+function endDrag(){
+  window.removeEventListener('pointermove', onDragMove);
+  if(!drag) return;
+  const {card, ghost, overTier, overPool, overTrash} = drag;
+  ghost.remove();
+  drag.el.classList.remove('dragging');
+  document.body.classList.remove('dragging-card');
+  clearHot();
+
+  if (overTrash){
+    cards = cards.filter(x=>x.id!==card.id);
+    toast(`已删除「${card.text||'图片'}」`);
+  } else if (overTier >= 0){
+    card.tier = overTier;
+    toast(`已入「${tiers[overTier]}」档`);
+  } else if (overPool){
+    card.tier = -1;
+  }
+  drag = null;
+  renderCards();
+}
+
+/* ================= TIER RENAME ================= */
+boardEl.addEventListener('input', e=>{
+  const ch = e.target.closest('.char');
+  if(!ch) return;
+  const i = +ch.dataset.tier;
+  tiers[i] = ch.textContent.trim().slice(0,6) || tiers[i];
+  saveDraft();
+});
+boardEl.addEventListener('blur', e=>{
+  const ch = e.target.closest && e.target.closest('.char');
+  if(!ch) return;
+  const i = +ch.dataset.tier;
+  ch.textContent = tiers[i];
+}, true);
+boardEl.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target.closest('.char')){ e.preventDefault(); e.target.blur(); }
+});
+
+/* ================= TITLE ================= */
+$('#boardTitle').addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); e.target.blur();} });
+$('#boardTitle').addEventListener('input', saveDraft);
+
+/* ================= TOOLBAR EVENTS ================= */
+$('#injectBtn').addEventListener('click', ()=>{ const v=$('#textInput').value; addTextCard(v); $('#textInput').value=''; $('#textInput').focus(); });
+$('#textInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ $('#injectBtn').click(); } });
+$('#fileInput').addEventListener('change', e=>{
+  Array.from(e.target.files).forEach(addImageCard);
+  e.target.value='';
+});
+$('#clearBtn').addEventListener('click', ()=>{
+  if(!cards.length) return toast('已经是空的了');
+  cards = []; renderCards(); toast('已清空全部卡片');
+});
+$('#alignBtn').addEventListener('click', ()=>{ renderCards(); toast('候选区已整理'); });
+$('#shuffleBtn').addEventListener('click', ()=>{
+  const pool = cards.filter(c=>c.tier<0);
+  if(pool.length<2) return toast('候选区不足两张，无需打乱');
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const tiered = cards.filter(c=>c.tier>=0);
+  cards = tiered.concat(pool);
+  renderCards(); toast('已打乱候选区');
+});
+$('#saveBtn').addEventListener('click', saveState);
+
+/* ================= ARCHIVES ================= */
+$('#archiveToggle').addEventListener('click', ()=> $('#archiveBox').classList.toggle('open'));
+
+function saveState(){
+  if(!cards.length) return toast('还没有卡片，先注入或上传再存档');
+  const data = {
+    id: Date.now(),
+    title: $('#boardTitle').textContent.trim(),
+    tiers,
+    cards: cards.map(c=>({type:c.type, text:c.text||null, src:c.src||null, tier:c.tier})),
+    date: new Date().toLocaleString('zh-CN')
+  };
+  const all = loadArchives();
+  all.unshift(data);
+  localStorage.setItem(LS_KEY, JSON.stringify(all.slice(0,12)));
+  renderArchives();
+  toast('已存档到本地');
+}
+function loadArchives(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; } }
+
+function renderArchives(){
+  const list = $('#archiveList');
+  const all = loadArchives();
+  if(!all.length){ list.innerHTML = '<div class="empty-archive">暂无存档</div>'; return; }
+  list.innerHTML = '';
+  all.forEach(item=>{
+    const row = document.createElement('div'); row.className='archive-item';
+    row.innerHTML = `<div style="min-width:0">
+        <div class="t">${escapeHtml(item.title||'未命名')}</div>
+        <div class="d">${item.date||''}</div>
+      </div>
+      <div class="acts">
+        <button class="mini" data-act="load" data-id="${item.id}" title="读取">${ICON_OPEN}</button>
+        <button class="mini" data-act="del"  data-id="${item.id}" title="删除">${ICON_TRASH}</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+$('#archiveList').addEventListener('click', e=>{
+  const btn = e.target.closest('.mini'); if(!btn) return;
+  const id = +btn.dataset.id;
+  let all = loadArchives();
+  if(btn.dataset.act==='load'){
+    const item = all.find(x=>x.id===id); if(!item) return;
+    $('#boardTitle').textContent = item.title || '排行';
+    tiers = (item.tiers && item.tiers.length? item.tiers : DEFAULT_TIERS).slice();
+    cards = (item.cards||[]).map(c=>({id:++uid, type:c.type, text:c.text, src:c.src, tier:typeof c.tier==='number'?c.tier:-1}));
+    renderBoard(); renderArchives(); toast('已读取存档');
+  } else {
+    all = all.filter(x=>x.id!==id);
+    localStorage.setItem(LS_KEY, JSON.stringify(all));
+    renderArchives(); toast('已删除存档');
+  }
+});
+
+/* ================= UTIL ================= */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ================= SEED ================= */
+function seed(){
+  if(cards.length) return;
+  ['夯神','顶级制造机','人上人','NPC代表','有点拉'].forEach((t)=>{
+    cards.push({id:++uid, type:'text', text:t, tier:-1});
+  });
+}
+
+/* ================= INIT ================= */
+setSkin(document.documentElement.className === 'skin-tech' ? 'tech' : 'ink', true);
+const _draft = loadDraft();
+if (_draft && _draft.cards.length){
+  if (_draft.title) document.getElementById('boardTitle').textContent = _draft.title;
+  if (Array.isArray(_draft.tiers) && _draft.tiers.length) tiers = _draft.tiers.slice();
+  _draft.cards.forEach(c=>cards.push({id:++uid, type:c.type, text:c.text||null, src:c.src||null, tier:typeof c.tier==='number'?c.tier:-1}));
+  renderBoard();
+  renderArchives();
+  renderCards();
+} else {
+  renderBoard();
+  renderArchives();
+  seed();
+  renderCards();
+}
+})();
+</script>
+</body>
+</html>
