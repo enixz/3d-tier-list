@@ -1595,6 +1595,12 @@ function createImageCard(imgSrc) {
     }
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 512, 512);
 
+    // 压暗图片本体亮部，避免 Bloom 把照片洗白（霓虹边框/底色不受影响，保持光感）
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgb(168,168,168)';
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.globalCompositeOperation = 'source-over';
+
     // Neon border frame
     ctx.strokeStyle = 'rgba(' + T.cssAccent + ', 0.6)';
     ctx.lineWidth = 4;

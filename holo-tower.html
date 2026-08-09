@@ -337,6 +337,11 @@ function imageCardTexture(img, name, frameColor) {
   if (aspect > targetAspect) { sh = img.height; sw = img.height * targetAspect; sx = (img.width - sw) / 2; sy = 0; }
   else { sw = img.width; sh = img.width / targetAspect; sx = 0; sy = (img.height - sh) / 2; }
   x.drawImage(img, sx, sy, sw, sh, 34, 92, 444, 330);
+  // 压暗图片本体亮部，避免 Bloom 把照片洗白（名字/数值/边框保持全亮度发光）
+  x.globalCompositeOperation = 'multiply';
+  x.fillStyle = 'rgb(168,168,168)';
+  x.fillRect(34, 92, 444, 330);
+  x.globalCompositeOperation = 'source-over';
   const shade = x.createLinearGradient(0, 300, 0, 422);
   shade.addColorStop(0, 'rgba(4,8,16,0)'); shade.addColorStop(1, 'rgba(4,8,16,.55)');
   x.fillStyle = shade; x.fillRect(34, 92, 444, 330);
@@ -533,7 +538,7 @@ upBeam.position.y = TOP_SURFACE + 8;
 scene.add(upBeam);
 const spotCone = new THREE.Mesh(
   new THREE.ConeGeometry(4.2, 12, 48, 1, true),
-  new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+  new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.028, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
 );
 spotCone.position.y = TOP_SURFACE + 6;
 scene.add(spotCone);
